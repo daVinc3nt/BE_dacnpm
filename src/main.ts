@@ -32,9 +32,6 @@ async function bootstrap() {
   });
 
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
-
-  app.setGlobalPrefix('v1');
-
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
