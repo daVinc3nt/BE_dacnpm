@@ -26,8 +26,8 @@ export class Schedule {
         createDate: Date
 
         @ManyToOne(()=> User)
-        userId: User
+        user: User
 
         @ManyToOne(()=> Device)
-        deviceId: Device
+        device: Device
 }

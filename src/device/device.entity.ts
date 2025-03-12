@@ -27,15 +27,15 @@ export class Device{
     @CreateDateColumn()
     createDate: Date
 
-    @OneToMany(() => SensorData,data => data.id,{onDelete:'CASCADE'})
+    @OneToMany(() => SensorData,data => data.id,{onDelete:'CASCADE', nullable: true})
     datalist : SensorData[]
 
-    @OneToMany(() => Alert,alert => alert.id,{onDelete:'CASCADE'})
+    @OneToMany(() => Alert,alert => alert.id,{onDelete:'CASCADE', nullable: true})
     alerts : Alert[]
 
-    @OneToMany(() => Schedule,schedule => schedule.id,{onDelete:'CASCADE'})
+    @OneToMany(() => Schedule,schedule => schedule.id,{onDelete:'CASCADE', nullable: true})
     schedules : Schedule[]
 
     @ManyToOne(()=> User)
-    userId: User
+    user: User
 }

@@ -22,6 +22,6 @@ export class Alert {
     time: Date
 
     @ManyToOne(() => Device)
-    deviceId: Device
+    device: Device
 
 }

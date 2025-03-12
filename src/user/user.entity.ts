@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { Device } from 'src/device/device.entity';
 import { Schedule } from 'src/schedule/schedule.entity';
 
-@Entity({name:"User"})
+@Entity()
 export class User {
     @PrimaryGeneratedColumn('uuid')
     id: string;

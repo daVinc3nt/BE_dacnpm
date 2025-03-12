@@ -16,5 +16,5 @@ export class SensorData {
     time: string
 
     @ManyToOne(() => Device,deviceId=> deviceId.id)
-    deviceId: Device
+    device: Device
 }
