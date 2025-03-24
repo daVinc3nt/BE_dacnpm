@@ -25,9 +25,9 @@ export class User {
     @UpdateDateColumn()
     updateAt: Date;
 
-    @OneToMany(() => Device, (device) => device.id)
+    @OneToMany(() => Device, (device) => device.user)
     devices: Device[];
 
-    @OneToMany(() => Schedule, (schedule) => schedule.id)
+    @OneToMany(() => Schedule, (schedule) => schedule.user)
     schedules: Schedule[];
 }
