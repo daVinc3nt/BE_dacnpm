@@ -1,85 +1,55 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+🌱 Green Farm Project - DACNPM
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+📝 Giới thiệu
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Dự án Green Farm là hệ thống quản lý nông trại thông minh, giúp theo dõi và điều khiển các thiết bị từ xa. Hệ thống bao gồm API Backend xây dựng với NestJS và sử dụng Docker để quản lý môi trường.
 
-## Description
+🚀 Hướng dẫn cài đặt & chạy dự án
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+1️⃣ Cài đặt các dependencies
 
-## Project setup
+Trước khi chạy dự án, bạn cần cài đặt các dependencies bằng lệnh:
 
-```bash
-$ yarn install
-```
+npm install
 
-## Compile and run the project
+2️⃣ Chạy dự án
 
-```bash
-# development
-$ yarn run start
+🔹 Chạy bằng Docker
 
-# watch mode
-$ yarn run start:dev
+Nếu bạn muốn chạy ứng dụng bằng Docker, sử dụng lệnh sau:
 
-# production mode
-$ yarn run start:prod
-```
+docker-compose up --build -d
 
-## Run tests
+🔹 Chạy trực tiếp trên máy (không dùng Docker thì phải tạo db name là cnpm)
 
-```bash
-# unit tests
-$ yarn run test
+npm start
 
-# e2e tests
-$ yarn run test:e2e
+Sau khi chạy thành công, API sẽ được phục vụ tại http://localhost:8000
 
-# test coverage
-$ yarn run test:cov
-```
 
-## Resources
+Hệ thống sẽ tự động build và chạy trong nền. Bạn có thể kiểm tra bằng docker ps
 
-Check out a few resources that may come in handy when working with NestJS:
+🛠 Công nghệ sử dụng
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+Backend: NestJS (Node.js)
 
-## Support
+Database: MSSQL (Chạy với Docker)
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+Authentication: Google OAuth
 
-## Stay in touch
+DevOps: Docker, Docker Compose
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+🔗 API Documentation
 
-## License
+Hệ thống có tích hợp Swagger để kiểm thử API.Sau khi chạy dự án, truy cập:
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+🔗 Swagger UI: http://localhost:8000/api
+
+📌 Ghi chú
+
+Đảm bảo bạn đã cài đặt Node.js và Docker trước khi chạy dự án.
+
+Nếu gặp lỗi cổng bị chiếm dụng, hãy thay đổi cổng trong .env.
+
+💌 Chúc bạn code vui vẻ! 🚀
+
