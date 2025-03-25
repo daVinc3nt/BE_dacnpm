@@ -5,15 +5,13 @@ import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TransformResponseInterceptor } from './common/response';
-import { dataSource, systemDataSource } from 'ormconfig';
-import { ProductModule } from './product/product.module';
-
+import { systemDataSource } from 'ormconfig';
+import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(systemDataSource.options),
-    TypeOrmModule.forRoot(dataSource.options), 
     UserModule,
-    ProductModule],
+    AuthModule],
   controllers: [AppController],
   providers: [
     AppService,

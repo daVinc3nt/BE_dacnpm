@@ -1,1 +1,0 @@
-GET /user/:email, hệ thống lấy thông tin user dựa trê
