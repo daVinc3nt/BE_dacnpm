@@ -6,13 +6,14 @@ import { UserModule } from './user/user.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TransformResponseInterceptor } from './common/response';
 import { systemDataSource } from 'ormconfig';
-import { AuthModule } from './auth /auth.module';
-
+import { AuthModule } from './auth/auth.module';
+import { DeviceModule } from './device/device.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(systemDataSource.options),
     UserModule,
-    AuthModule],
+    AuthModule,
+    DeviceModule],
   controllers: [AppController],
   providers: [
     AppService,

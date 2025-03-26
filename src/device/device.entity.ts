@@ -12,7 +12,7 @@ export class Device{
     @Column()
     action:string
 
-    @Column()
+    @Column({unique:true})
     deviceName:string
 
     @Column({nullable:true})

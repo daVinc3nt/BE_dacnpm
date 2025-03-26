@@ -4,7 +4,7 @@ import * as dotenv from 'dotenv';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ClassSerializerInterceptor, ValidationPipe } from '@nestjs/common';
 import { AllExceptionsFilter } from './common/exception';
-import { JwtAuthGuard } from './auth /guard/jwt-auth.guard';
+import { JwtAuthGuard } from './auth/guard/jwt-auth.guard';
 
 dotenv.config();
 

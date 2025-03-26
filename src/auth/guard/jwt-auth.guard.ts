@@ -6,13 +6,13 @@ config();
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  private readonly jwtSecret = process.env.JWT_SECRET;
-  private readonly specialTestToken = 'TEST_TOKEN';
+    private readonly jwtSecret = process.env.JWT_SECRET;
+    private readonly specialTestToken = 'TEST_TOKEN';
 
-  canActivate(context: ExecutionContext): boolean {
+    canActivate(context: ExecutionContext): boolean {
         const request = context.switchToHttp().getRequest();
         const authHeader = request.headers.authorization;
-        
+
         if (!authHeader) return false;
         const token = authHeader.split(' ')[1]; // Lấy token từ header
 
