@@ -1,30 +1,21 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { LessThan, MoreThan, Repository } from "typeorm";
+import { Between, LessThan, MoreThan, Repository } from "typeorm";
 
 import { Schedule } from "./schedule.entity";
-
+import { User } from "src/user/user.entity";
+import { Device } from "src/device/device.entity";
+import { isValidUUID, isValidDateFormat, validRepeat, validAction } from "src/common/helper";
 @Injectable()
 export class ScheduleService {
     constructor(
         @InjectRepository(Schedule)
-        private readonly scheduleRepository: Repository<Schedule>
+        private readonly scheduleRepository: Repository<Schedule>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+        @InjectRepository(Device)
+        private readonly deviceRepository: Repository<Device>
     ) { }
-
-    private isValidDateFormat(dateStr: string): boolean {
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;  // YYYY-MM-DD
-        const dateTimeRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/; // YYYY-MM-DD HH:mm
-        const timeRegex = /^\d{2}:\d{2}$/; // HH:mm
-    
-        return dateRegex.test(dateStr) || dateTimeRegex.test(dateStr) || timeRegex.test(dateStr);
-    }
-
-    async getAllSchedule(): Promise<Schedule[]> {
-        const list_schedule = await this.scheduleRepository.find();
-        if (!list_schedule.length)
-            return [];
-        return list_schedule;
-    }
 
     async getScheduleById(id: string): Promise<Schedule> {
         const schedule = await this.scheduleRepository.findOne({ where: { id } });
@@ -34,10 +25,36 @@ export class ScheduleService {
         return schedule;
     }
 
-    async getScheduleByConditions(startDate?: string, endDate?: string): Promise<Schedule[]> {
-        const whereCondition: any = {};
-        if (startDate) whereCondition.createDate = MoreThan(new Date(startDate));
-        if (endDate) whereCondition.createDate = LessThan(new Date(endDate));
+    async getScheduleByConditions(startDate: string, endDate: string, whereCondition: any): Promise<Schedule[]> {
+
+        let parsedStartDate: Date | undefined;
+        let parsedEndDate: Date | undefined;
+
+        if (startDate) {
+            let formattedStartDate = startDate.replace(" ", "T") + "Z";
+            parsedStartDate = new Date(formattedStartDate);
+            if (isNaN(parsedStartDate.getTime())) {
+                throw new BadRequestException(`Invalid startDate format: ${startDate}`);
+            }
+        }
+
+        if (endDate) {
+            let formattedEndDate = endDate.replace(" ", "T") + "Z";
+            parsedEndDate = new Date(formattedEndDate);
+            if (isNaN(parsedEndDate.getTime())) {
+                throw new BadRequestException(`Invalid endDate format: ${endDate}`);
+            }
+        }
+
+        if (startDate && endDate) {
+            whereCondition.createDate = Between(parsedStartDate, parsedEndDate);
+        }
+        else if (startDate) {
+            whereCondition.createDate = MoreThan(parsedStartDate);
+        }
+        else if (endDate) {
+            whereCondition.createDate = LessThan(parsedEndDate);
+        }
 
         const list = await this.scheduleRepository.find({ where: whereCondition });
         if (!list)
@@ -47,12 +64,19 @@ export class ScheduleService {
     }
 
 
-    async addSchedule(data: Schedule): Promise<Schedule> {
-        let errors : string[] ;
+    async addSchedule(userId: string, deviceId: string, data: Schedule): Promise<Schedule> {
+        let errors: string[] = [];
 
-        const validActione = ['On', 'Off'];
-        if (!data.action || !validActione.includes(data.action)) {
-            errors.push(`Invalid status. Allowed values: ${validActione.join(', ')}`);
+        const userEnt = await this.userRepository.findOne({ where: { id: userId } })
+        if (!userEnt)
+            errors.push(`Not found user with id ${userId}`)
+
+        const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } })
+        if (!deviceEnt)
+            errors.push(`Not found device with id ${deviceId}`)
+
+        if (!data.action || !validAction.includes(data.action)) {
+            errors.push(`Invalid status. Allowed values: ${validAction.join(', ')}`);
         }
 
         if (!data.conditon) {
@@ -61,9 +85,11 @@ export class ScheduleService {
 
         if (!data.time) {
             errors.push('Time is required.');
-        }else if(!this.isValidDateFormat(data.time))
-            errors.push('Time not correct format "YYYY-MM-DD", "YYYY-MM-DD HH:mm" or "HH:mm".');
+        } else if (!isValidDateFormat(data.time))
+            errors.push('Time not correct format "YYYY-MM-DD HH:mm" or "HH:mm".');
 
+        if (data.repeat && !validRepeat.includes(data.repeat))
+            errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
 
         if (errors.length > 0) {
             throw new BadRequestException(errors);
@@ -72,7 +98,13 @@ export class ScheduleService {
         const nowUTC = new Date();
         data.createDate = data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
 
-        const newDevice = this.scheduleRepository.create(data);
+
+
+        const newDevice = this.scheduleRepository.create({
+            ...data,
+            user: { id: userId },
+            device: { id: deviceId }
+        });
         const savedDevice = await this.scheduleRepository.save(newDevice);
 
         return savedDevice;
@@ -80,31 +112,35 @@ export class ScheduleService {
 
     async updateSchedule(id: string, data: Schedule): Promise<String> {
         const errors: string[] = [];
-    
+
         if (!id) {
             errors.push('Shedule ID is required.');
         }
+        if (!isValidUUID(id))
+            throw new BadRequestException("Id not in UUID format")
 
-        const idChedule = await this.scheduleRepository.findOne({where:{id:id}})
-        if (!idChedule) {
+        const idSchedule = await this.scheduleRepository.findOne({ where: { id: id } })
+        if (!idSchedule) {
             throw new NotFoundException(`Shedule with ID ${id} not found`);
         }
-    
-        const validActione = ['On', 'Off'];
-        if (data.action && !validActione.includes(data.action)) {
-            errors.push(`Invalid status. Allowed values: ${validActione.join(', ')}`);
+
+        if (data.action && !validAction.includes(data.action)) {
+            errors.push(`Invalid status. Allowed values: ${validAction.join(', ')}`);
         }
 
-        if(data.time && !this.isValidDateFormat(data.time))
+        if (data.time && !isValidDateFormat(data.time))
             errors.push('Time not correct format "YYYY-MM-DD", "YYYY-MM-DD HH:mm" or "HH:mm".');
-    
+
+        if (data.repeat && !validRepeat.includes(data.repeat))
+            errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
+
         if (errors.length > 0) {
             throw new BadRequestException(errors);
         }
-    
+
         const nowUTC = new Date();
         data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
-    
+
         const updateResult = await this.scheduleRepository.update({ id: id }, data);
         if (updateResult.affected === 0) {
             throw new BadRequestException(`Failed to update schedule with ID ${id}.`);
@@ -113,12 +149,15 @@ export class ScheduleService {
     }
 
     async deleteSchedule(id: string): Promise<String> {
+        if (!isValidUUID(id))
+            throw new BadRequestException("Id not in UUID format")
+
         const resultFind = await this.scheduleRepository.findOne({
             where: { id: id },
         })
 
         if (!resultFind)
-            throw new ConflictException(`The schedule with id ${id} isn't exist`)
+            throw new NotFoundException(`The schedule with id ${id} isn't exist`)
 
         const deleteDevice = await this.scheduleRepository.delete({ id: id })
         if (deleteDevice.affected === 0) {

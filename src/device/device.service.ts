@@ -3,21 +3,17 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Between, LessThan, MoreThan, Repository } from "typeorm";
 
 import { Device } from "./device.entity";
-import { UUID } from "crypto";
+import { User } from "src/user/user.entity";
+import { validStatus } from "src/common/helper";
 
 @Injectable()
 export class DeviceService {
     constructor(
         @InjectRepository(Device)
-        private readonly deviceRepository: Repository<Device>
+        private readonly deviceRepository: Repository<Device>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>
     ) { }
-
-    async getAllDevices(): Promise<Device[]> {
-        const list_device = await this.deviceRepository.find();
-        if (!list_device.length)
-            return [];
-        return list_device;
-    }
 
     async getDeviceById(id: string): Promise<Device> {
         const device = await this.deviceRepository.findOne({ where: { id: id } });
@@ -27,24 +23,12 @@ export class DeviceService {
         return device;
     }
 
-    async getDevicesByConditions(action?: string, status?: string, startDate?: string, endDate?: string): Promise<Device[]> {
-        const whereCondition: any = {};
-
-        const validStatuses = ['active', 'inactive', 'maintenance'];
-        if (status)
-            if (validStatuses.includes(status))
-                whereCondition.status = status;
-            else
-                throw new BadRequestException(`Invalid status. Allowed values: ${validStatuses.join(', ')}`)
-
-        if (action)
-            whereCondition.action = action;
-
+    async getDevicesByConditions(startDate: string, endDate: string, whereCondition: any): Promise<Device[]> {
         let parsedStartDate: Date | undefined;
         let parsedEndDate: Date | undefined;
 
         if (startDate) {
-            let formattedStartDate = startDate.replace(" ", "T");
+            let formattedStartDate = startDate.replace(" ", "T") + "Z";
             parsedStartDate = new Date(formattedStartDate);
             if (isNaN(parsedStartDate.getTime())) {
                 throw new BadRequestException(`Invalid startDate format: ${startDate}`);
@@ -52,7 +36,7 @@ export class DeviceService {
         }
 
         if (endDate) {
-            let formattedEndDate = endDate.replace(" ", "T");
+            let formattedEndDate = endDate.replace(" ", "T") + "Z";
             parsedEndDate = new Date(formattedEndDate);
             if (isNaN(parsedEndDate.getTime())) {
                 throw new BadRequestException(`Invalid endDate format: ${endDate}`);
@@ -76,8 +60,13 @@ export class DeviceService {
         return list;
     }
 
-    async addDevice(data: Device): Promise<Device> {
+    async addDevice(userId: string, data: Device): Promise<Device> {
         const errors: string[] = [];
+
+        const userEnt = this.userRepository.findOne({ where: { id: userId } })
+        if (!userEnt) {
+            errors.push(`User not found with id ${userId}`)
+        }
 
         if (!data.deviceName) {
             errors.push('Device name is required.');
@@ -90,9 +79,8 @@ export class DeviceService {
             }
         }
 
-        const validStatuses = ['active', 'inactive', 'maintenance'];
-        if (!data.status || !validStatuses.includes(data.status)) {
-            errors.push(`Invalid status. Allowed values: ${validStatuses.join(', ')}`);
+        if (!data.status || !validStatus.includes(data.status)) {
+            errors.push(`Invalid status. Allowed values: ${validStatus.join(', ')}`);
         }
 
         if (!data.action) {
@@ -106,7 +94,10 @@ export class DeviceService {
         const nowUTC = new Date();
         data.createDate = data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
 
-        const newDevice = this.deviceRepository.create(data);
+        const newDevice = this.deviceRepository.create({
+            ...data,
+            user: { id: userId }
+        });
         return await this.deviceRepository.save(newDevice);
     }
 
@@ -130,9 +121,8 @@ export class DeviceService {
             }
         }
 
-        const validStatuses = ['active', 'inactive', 'maintenance'];
-        if (data.status && !validStatuses.includes(data.status)) {
-            errors.push(`Invalid status. Allowed values: ${validStatuses.join(', ')}`);
+        if (data.status && !validStatus.includes(data.status)) {
+            errors.push(`Invalid status. Allowed values: ${validStatus.join(', ')}`);
         }
 
         if (errors.length > 0) {
