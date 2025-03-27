@@ -8,12 +8,14 @@ import { TransformResponseInterceptor } from './common/response';
 import { systemDataSource } from 'ormconfig';
 import { AuthModule } from './auth/auth.module';
 import { DeviceModule } from './device/device.module';
+import { ScheduleModule } from './schedule/schedule.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(systemDataSource.options),
     UserModule,
     AuthModule,
-    DeviceModule],
+    DeviceModule,
+    ScheduleModule],
   controllers: [AppController],
   providers: [
     AppService,
