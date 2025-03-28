@@ -14,9 +14,10 @@ export class ScheduleController {
     private readonly scheduleService: ScheduleService,
   ) { }
 
-  @Interval("Đang kiểm tra lịch trình...",60000)
+  @Interval(59000)
   async handleScheduleCheck() {
-    this.scheduleService.handleSchuduleCheck()
+    console.log("Đang kiểm tra lịch trình...");
+    await this.scheduleService.handleSchuduleCheck()
   }
 
   @ApiOperation({ summary: "Lấy các lịch được duyệt theo các kiều kiện. Nếu không truyền thì sẽ lấy hết" })
@@ -60,7 +61,7 @@ export class ScheduleController {
   @ApiOperation({ summary: "Tạo lịch mới" })
   @ApiBody({
     schema: {
-      examples: {
+      example: {
         userId: "userid123",
         deviceId: "deviceid123",
         action: "On",
@@ -93,12 +94,12 @@ export class ScheduleController {
     return this.scheduleService.addSchedule(userId, deviceId, data);
   }
 
-  @ApiOperation({ summary: "Tạo lịch mới" })
+  @ApiOperation({ summary: "Cập nhập lịch" })
   @ApiQuery({ name: 'id', required: true, description: 'ID của schedule cần cập nhật' })
   @ApiBody({
     schema: {
-      examples: {
-        deviceId: "deviceid123",
+      example: {
+        device: "deviceid123",
         action: "On",
         actionTime: "124",
         conditon: "> 30",

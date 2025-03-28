@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Between, LessThan, MoreThan, Repository } from "typeorm";
+import { Between, LessThan, MoreThan, Raw, Repository } from "typeorm";
 
 import { Schedule } from "./schedule.entity";
 import { User } from "src/user/user.entity";
@@ -17,13 +17,57 @@ export class ScheduleService {
         private readonly deviceRepository: Repository<Device>
     ) { }
 
-    async handleSchuduleCheck(){
-        const now = new Date();
-        const prev1min = new Date(now.getDate() - 60)
+    async handleSchuduleCheck() {
+        const now = new Date("2025-03-11T23:00Z");
+        // daily
+        const nowHour = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        const onDaily = await this.scheduleRepository.find({ where: { repeat: "daily", time: nowHour }, relations: ['device'] })
+        // weekly
+        const timeOfWeekly = ["sun", "mon", "tue", "wed", "thur", "fri", "sat"]
+        const dateInWeek = timeOfWeekly[now.getDay()]
+        const onWeekly = await this.scheduleRepository.find({
+            where: {
+                repeat: "weekly",
+                time: Raw(alias => `LOWER(${alias}) = LOWER(:value)`, { value: `${dateInWeek} ${nowHour}` })
+            },
+            relations: ['device']
+        })
+        // monthly
+        const dateInMonth = now.getDate()
+        const onMonthly = await this.scheduleRepository.find({
+            where: {
+                repeat: "monthly",
+                time: Raw(alias => `LOWER(${alias}) = LOWER(:value)`, { value: `${dateInMonth} ${nowHour}` })
+            },
+            relations: ['device']
+        })
+        // x days
+        const xDays = await this.scheduleRepository.find({ where: { repeat: "x days", }, relations: ['device'] })
+        let onXDays = []
+        for (const schedule of xDays) {
+            if (!schedule.lastActive) continue;
+            const lastActive = schedule.lastActive
 
-        const nowHour = now.toLocaleTimeString("en-GB",{hour:"2-digit", minute:"2-digit"})
-        const prev1minHour = prev1min.toLocaleTimeString("en-GB",{hour:"2-digit", minute:"2-digit"})
-        const onDaily = this.scheduleRepository.find({where:{repeat:"daily", time: Between(nowHour,prev1minHour) }})
+            const [daysStr, timeStr] = schedule.time.split(" ");
+            const timeInDays = parseInt(daysStr, 10);
+
+            const nextRunDate = new Date(lastActive);
+            nextRunDate.setDate(nextRunDate.getDate() + timeInDays);
+            const [hours, minutes] = timeStr.split(":").map(Number);
+            nextRunDate.setHours(hours, minutes, 0, 0);
+
+            if (now >= nextRunDate && nowHour === timeStr) {
+                onXDays.push(schedule);
+            }
+        }
+        const lastArr = [...onDaily, ...onWeekly, ...onMonthly, ...onXDays];
+        if (lastArr) {
+            lastArr.forEach(element => {
+                console.log(`Chạy thiết bị với id=${element.device.id}`)
+                element.lastActive = new Date()
+            });
+            await this.scheduleRepository.save(lastArr)
+        }
     }
 
     async getAllSchedule(): Promise<Schedule[]> {
@@ -83,9 +127,9 @@ export class ScheduleService {
     async addSchedule(userId: string, deviceId: string, data: Schedule): Promise<Schedule> {
         let errors: string[] = [];
 
-        const userEnt = await this.userRepository.findOne({ where: { id: userId } })
-        if (!userEnt)
-            errors.push(`Not found user with id ${userId}`)
+        // const userEnt = await this.userRepository.findOne({ where: { id: userId } })
+        // if (!userEnt)
+        //     errors.push(`Not found user with id ${userId}`)
 
         const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } })
         if (!deviceEnt)
@@ -102,7 +146,7 @@ export class ScheduleService {
         if (!data.time)
             errors.push('Time is required.');
         else if (data.repeat) {
-            if (!validRepeat.includes(data.repeat) && !isValidXDaysFormat(data.repeat))
+            if (!validRepeat.includes(data.repeat))
                 errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
             else
                 switch (data.repeat) {
@@ -118,6 +162,12 @@ export class ScheduleService {
                         if (!isValidTimeOfMonthly(data.time))
                             errors.push(`Invalid time. Allowed values: (number) hh:mm`)
                         break;
+                    case "x days":
+                        if (!isValidXDaysFormat(data.time))
+                            errors.push(`Invalid time. Allowed is a number in range(1-99) `)
+                        else
+                            data.lastActive = new Date()
+                        break;
                 }
         }
 
@@ -130,7 +180,7 @@ export class ScheduleService {
 
         const newDevice = this.scheduleRepository.create({
             ...data,
-            user: { id: userId },
+            // user: { id: userId },
             device: { id: deviceId }
         });
         const savedDevice = await this.scheduleRepository.save(newDevice);
@@ -156,30 +206,30 @@ export class ScheduleService {
             errors.push(`Invalid status. Allowed values: ${validAction.join(', ')}`);
         }
 
-        if(data.repeat || data.time)
+        if (data.repeat || data.time)
             if (!data.time)
                 errors.push('Time is required.');
-            if (!data.repeat)
-                errors.push('Repeat is required.');
-            else if (data.repeat) {
-                if (!validRepeat.includes(data.repeat) && !isValidXDaysFormat(data.repeat))
-                    errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
-                else
-                    switch (data.repeat) {
-                        case "daily":
-                            if (!isValidTimeOfDaily(data.time))
-                                errors.push(`Invalid time. Allowed values: hh:mm`)
-                            break;
-                        case "weekly":
-                            if (!isValidTimeOfWeekly(data.time))
-                                errors.push(`Invalid time. Allowed values: (day in week) hh:mm`)
-                            break;
-                        case "monthly":
-                            if (!isValidTimeOfMonthly(data.time))
-                                errors.push(`Invalid time. Allowed values: (number) hh:mm`)
-                            break;
-                    }
-            }
+        if (!data.repeat)
+            errors.push('Repeat is required.');
+        else if (data.repeat) {
+            if (!validRepeat.includes(data.repeat) && !isValidXDaysFormat(data.repeat))
+                errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
+            else
+                switch (data.repeat) {
+                    case "daily":
+                        if (!isValidTimeOfDaily(data.time))
+                            errors.push(`Invalid time. Allowed values: hh:mm`)
+                        break;
+                    case "weekly":
+                        if (!isValidTimeOfWeekly(data.time))
+                            errors.push(`Invalid time. Allowed values: (day in week) hh:mm`)
+                        break;
+                    case "monthly":
+                        if (!isValidTimeOfMonthly(data.time))
+                            errors.push(`Invalid time. Allowed values: (number) hh:mm`)
+                        break;
+                }
+        }
 
 
         if (errors.length > 0) {

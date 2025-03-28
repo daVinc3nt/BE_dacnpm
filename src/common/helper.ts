@@ -11,26 +11,25 @@ export function isValidDateFormat(dateStr: string): boolean {
     return dateRegex.test(dateStr) || dateTimeRegex.test(dateStr) || timeRegex.test(dateStr);
 }
 
-export const validRepeat = ["daily", "weekly", "monthly"]
+export const validRepeat = ["daily", "weekly", "monthly", "x days"]
 export function isValidTimeOfDaily(dateStr: string): boolean {
     const timeRegex = /^\d{2}:\d{2}$/; // HH:mm
     return timeRegex.test(dateStr);
 }
 
-export const validTimeOfWeekly = ["mon", "tue", "wed", "thur", "fri","sat", "sun"]
+const validTimeOfWeekly = ["mon", "tue", "wed", "thur", "fri","sat", "sun"]
 export function isValidTimeOfWeekly(dateStr: string): boolean {
-    const timeRegex = new RegExp (`/^(${validTimeOfWeekly.join("|")}) \d{2}:\d{2}$/`); // dayInWeek HH:mm
+    const timeRegex = new RegExp (`^(${validTimeOfWeekly.join("|")}) \\d{2}:\\d{2}$`); // dayInWeek HH:mm
     return timeRegex.test(dateStr);
 }
 
-export const validTimeOfMonthly = Array.from(Array(10).keys())
 export function isValidTimeOfMonthly(dateStr: string): boolean {
-    const timeRegex = new RegExp (`/^(${validTimeOfMonthly.join("|")}) \d{2}:\d{2}$/`); // number HH:mm
+    const timeRegex = /^(0?[1-9]|[1-2][0-9]|30) \d{2}:\d{2}$/; // number HH:mm
     return timeRegex.test(dateStr);
 }
 
 export function isValidXDaysFormat(input: string): boolean {
-    const regex = /^\d+\s+days$/; // "x days" where x is a number
+    const regex = /^(0?[1-9]|[1-9][0-9]) \d{2}:\d{2}$/;
     return regex.test(input);
 }
 
