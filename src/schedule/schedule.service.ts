@@ -5,7 +5,7 @@ import { Between, LessThan, MoreThan, Repository } from "typeorm";
 import { Schedule } from "./schedule.entity";
 import { User } from "src/user/user.entity";
 import { Device } from "src/device/device.entity";
-import { isValidUUID, isValidDateFormat, validRepeat, validAction } from "src/common/helper";
+import { isValidUUID, isValidDateFormat, validRepeat, validAction, isValidTimeOfDaily, isValidTimeOfMonthly, isValidTimeOfWeekly, isValidXDaysFormat } from "src/common/helper";
 @Injectable()
 export class ScheduleService {
     constructor(
@@ -16,6 +16,13 @@ export class ScheduleService {
         @InjectRepository(Device)
         private readonly deviceRepository: Repository<Device>
     ) { }
+
+    async getAllSchedule(): Promise<Schedule[]> {
+        const list_schedule = await this.scheduleRepository.find();
+        if (!list_schedule.length)
+            return [];
+        return list_schedule;
+    }
 
     async getScheduleById(id: string): Promise<Schedule> {
         const schedule = await this.scheduleRepository.findOne({ where: { id } });
@@ -83,13 +90,27 @@ export class ScheduleService {
             errors.push('Condition is required.');
         }
 
-        if (!data.time) {
+        if (!data.time)
             errors.push('Time is required.');
-        } else if (!isValidDateFormat(data.time))
-            errors.push('Time not correct format "YYYY-MM-DD HH:mm" or "HH:mm".');
-
-        if (data.repeat && !validRepeat.includes(data.repeat))
-            errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
+        else if (data.repeat) {
+            if (!validRepeat.includes(data.repeat) && !isValidXDaysFormat(data.repeat))
+                errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
+            else
+                switch (data.repeat) {
+                    case "daily":
+                        if (!isValidTimeOfDaily(data.time))
+                            errors.push(`Invalid time. Allowed values: hh:mm`)
+                        break;
+                    case "weekly":
+                        if (!isValidTimeOfWeekly(data.time))
+                            errors.push(`Invalid time. Allowed values: (day in week) hh:mm`)
+                        break;
+                    case "monthly":
+                        if (!isValidTimeOfMonthly(data.time))
+                            errors.push(`Invalid time. Allowed values: (number) hh:mm`)
+                        break;
+                }
+        }
 
         if (errors.length > 0) {
             throw new BadRequestException(errors);
@@ -97,8 +118,6 @@ export class ScheduleService {
 
         const nowUTC = new Date();
         data.createDate = data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
-
-
 
         const newDevice = this.scheduleRepository.create({
             ...data,
@@ -128,11 +147,31 @@ export class ScheduleService {
             errors.push(`Invalid status. Allowed values: ${validAction.join(', ')}`);
         }
 
-        if (data.time && !isValidDateFormat(data.time))
-            errors.push('Time not correct format "YYYY-MM-DD", "YYYY-MM-DD HH:mm" or "HH:mm".');
+        if(data.repeat || data.time)
+            if (!data.time)
+                errors.push('Time is required.');
+            if (!data.repeat)
+                errors.push('Repeat is required.');
+            else if (data.repeat) {
+                if (!validRepeat.includes(data.repeat) && !isValidXDaysFormat(data.repeat))
+                    errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
+                else
+                    switch (data.repeat) {
+                        case "daily":
+                            if (!isValidTimeOfDaily(data.time))
+                                errors.push(`Invalid time. Allowed values: hh:mm`)
+                            break;
+                        case "weekly":
+                            if (!isValidTimeOfWeekly(data.time))
+                                errors.push(`Invalid time. Allowed values: (day in week) hh:mm`)
+                            break;
+                        case "monthly":
+                            if (!isValidTimeOfMonthly(data.time))
+                                errors.push(`Invalid time. Allowed values: (number) hh:mm`)
+                            break;
+                    }
+            }
 
-        if (data.repeat && !validRepeat.includes(data.repeat))
-            errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
 
         if (errors.length > 0) {
             throw new BadRequestException(errors);

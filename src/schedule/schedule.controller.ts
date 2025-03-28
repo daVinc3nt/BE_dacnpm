@@ -1,11 +1,22 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Logger, Param, Post, Put, Query } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { Schedule } from './schedule.entity';
 import { isValidUUID } from 'src/common/helper';
+import { Interval } from '@nestjs/schedule';
 
 @Controller('schedule')
 export class ScheduleController {
-  constructor(private readonly scheduleService: ScheduleService) { }
+  private readonly logger = new Logger(ScheduleController.name)
+  
+  constructor(
+    private readonly scheduleService: ScheduleService,
+  ) { }
+  // run every 5s to check schedule's time. Execute it when time in range (time - 30s -> time) 
+  // @Interval(5000)
+  // async handleScheduleCheck() {
+    
+  // }
+
   // get all, get schedule by id, get by user id, get by device id
   // get by start date , end date
   @Get()
