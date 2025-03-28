@@ -3,22 +3,28 @@ import { ScheduleService } from './schedule.service';
 import { Schedule } from './schedule.entity';
 import { isValidUUID } from 'src/common/helper';
 import { Interval } from '@nestjs/schedule';
+import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
+@ApiTags("Schedule")
 @Controller('schedule')
 export class ScheduleController {
   private readonly logger = new Logger(ScheduleController.name)
-  
+
   constructor(
     private readonly scheduleService: ScheduleService,
   ) { }
-  // run every 5s to check schedule's time. Execute it when time in range (time - 30s -> time) 
-  // @Interval(5000)
-  // async handleScheduleCheck() {
-    
-  // }
 
-  // get all, get schedule by id, get by user id, get by device id
-  // get by start date , end date
+  @Interval("Đang kiểm tra lịch trình...",60000)
+  async handleScheduleCheck() {
+    this.scheduleService.handleSchuduleCheck()
+  }
+
+  @ApiOperation({ summary: "Lấy các lịch được duyệt theo các kiều kiện. Nếu không truyền thì sẽ lấy hết" })
+  @ApiQuery({ name: "id", required: false, description: "Lấy theo ID của lịch trình cầu lấy" })
+  @ApiQuery({ name: "userId", required: false, description: "Lấy theo userId" })
+  @ApiQuery({ name: "deviceId", required: false, description: "Lấy theo deviceId" })
+  @ApiQuery({ name: "startDate", required: false, description: 'Lọc theo ngày bắt đầu (định dạng: YYYY-MM-DD HH:mm)' })
+  @ApiQuery({ name: "endDate", required: false, description: 'Lọc theo ngày kết thúc (định dạng: YYYY-MM-DD HH:mm)' })
   @Get()
   async getSchedules(
     @Query('id') id: string,
@@ -50,7 +56,21 @@ export class ScheduleController {
 
   }
 
-  // Example: {"userId":"", "deviceId":"", "action": "On", "actionTime": "124" (in sec), "conditon": "> 30" (depend on device), "repeat": "daily", "time": "06:00"}
+  // Example: 
+  @ApiOperation({ summary: "Tạo lịch mới" })
+  @ApiBody({
+    schema: {
+      examples: {
+        userId: "userid123",
+        deviceId: "deviceid123",
+        action: "On",
+        actionTime: "124",
+        conditon: "> 30",
+        repeat: "daily",
+        time: "06:00"
+      }
+    }
+  })
   @Post()
   async addSchedule(
     @Body("userId") userId: string,
@@ -73,7 +93,20 @@ export class ScheduleController {
     return this.scheduleService.addSchedule(userId, deviceId, data);
   }
 
-  // Example: {"action": "On", "actionTime": "124" (in sec), "conditon": "> 30" (depend on device), "repeat": "daily", "time": "06:00"}
+  @ApiOperation({ summary: "Tạo lịch mới" })
+  @ApiQuery({ name: 'id', required: true, description: 'ID của schedule cần cập nhật' })
+  @ApiBody({
+    schema: {
+      examples: {
+        deviceId: "deviceid123",
+        action: "On",
+        actionTime: "124",
+        conditon: "> 30",
+        repeat: "daily",
+        time: "06:00"
+      }
+    }
+  })
   @Put()
   async updateSchedule(
     @Query('id') id: string,
@@ -82,7 +115,8 @@ export class ScheduleController {
     return this.scheduleService.updateSchedule(id, data);
   }
 
-  // Example: header:{"id":""}
+  @ApiOperation({ summary: "Xóa schudule" })
+  @ApiQuery({ name: 'id', required: true, description: 'ID của schudule cần xóa' })
   @Delete()
   async deleteSchedule(
     @Query('id') id: string

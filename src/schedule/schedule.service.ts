@@ -17,6 +17,15 @@ export class ScheduleService {
         private readonly deviceRepository: Repository<Device>
     ) { }
 
+    async handleSchuduleCheck(){
+        const now = new Date();
+        const prev1min = new Date(now.getDate() - 60)
+
+        const nowHour = now.toLocaleTimeString("en-GB",{hour:"2-digit", minute:"2-digit"})
+        const prev1minHour = prev1min.toLocaleTimeString("en-GB",{hour:"2-digit", minute:"2-digit"})
+        const onDaily = this.scheduleRepository.find({where:{repeat:"daily", time: Between(nowHour,prev1minHour) }})
+    }
+
     async getAllSchedule(): Promise<Schedule[]> {
         const list_schedule = await this.scheduleRepository.find();
         if (!list_schedule.length)

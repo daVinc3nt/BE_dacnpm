@@ -5,6 +5,9 @@ import { Between, LessThan, MoreThan, Repository } from "typeorm";
 import { Device } from "./device.entity";
 import { User } from "src/user/user.entity";
 import { validStatus } from "src/common/helper";
+import { Schedule } from "src/schedule/schedule.entity";
+import { SensorData } from "src/sensordata/sensordata.entity";
+import { Alert } from "src/alert/alert.entity";
 
 @Injectable()
 export class DeviceService {
@@ -12,7 +15,13 @@ export class DeviceService {
         @InjectRepository(Device)
         private readonly deviceRepository: Repository<Device>,
         @InjectRepository(User)
-        private readonly userRepository: Repository<User>
+        private readonly userRepository: Repository<User>,
+        @InjectRepository(Schedule)
+        private readonly scheduleRepository: Repository<Schedule>,
+        @InjectRepository(SensorData)
+        private readonly sendorDataRepository: Repository<SensorData>,
+        @InjectRepository(Alert)
+        private readonly alertRepository: Repository<Alert>
     ) { }
 
     async getDeviceById(id: string): Promise<Device> {
@@ -63,7 +72,7 @@ export class DeviceService {
     async addDevice(userId: string, data: Device): Promise<Device> {
         const errors: string[] = [];
 
-        const userEnt = this.userRepository.findOne({ where: { id: userId } })
+        const userEnt = await this.userRepository.findOne({ where: { id: userId } })
         if (!userEnt) {
             errors.push(`User not found with id ${userId}`)
         }
@@ -147,6 +156,21 @@ export class DeviceService {
 
         if (!resultFind)
             throw new ConflictException(`The device with id ${id} isn't exist`)
+
+        const schedules = await this.scheduleRepository.find({where:{ device: {id: id}}})
+        await Promise.all(schedules.map(schedule => 
+            this.scheduleRepository.delete({ id: schedule.id })
+        ));
+
+        const alerts = await this.alertRepository.find({where:{ device: {id: id}}})
+        await Promise.all(alerts.map(alert => 
+            this.alertRepository.delete({ id: alert.id })
+        ));
+
+        const sensorDatas = await this.sendorDataRepository.find({where:{ device: {id: id}}})
+        await Promise.all(sensorDatas.map(sensorData => 
+            this.sendorDataRepository.delete({ id: sensorData.id })
+        ));
 
         const deleteDevice = await this.deviceRepository.delete({ id: id })
         if (deleteDevice.affected === 0) {
