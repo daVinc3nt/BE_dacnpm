@@ -12,11 +12,7 @@ export class Device{
     @Column()
     action:string
 
-<<<<<<< HEAD
-    @Column()
-=======
     @Column({unique:true})
->>>>>>> origin/hoa
     deviceName:string
 
     @Column({nullable:true})

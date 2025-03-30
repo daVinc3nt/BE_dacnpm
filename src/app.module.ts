@@ -8,7 +8,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { TransformResponseInterceptor } from './common/response';
-import { systemDataSource } from 'ormconfig';
 import { AuthModule } from './auth /auth.module';
 
 @Module({

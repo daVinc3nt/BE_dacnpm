@@ -5,33 +5,6 @@ import { Device } from 'src/device/device.entity';
 @Entity()
 export class Schedule {
     @PrimaryGeneratedColumn("uuid")
-<<<<<<< HEAD
-        id: string
-    
-        @Column()
-        action:string
-    
-        @Column()
-        conditon:string
-    
-        @Column({nullable:true})
-        repeat:string
-    
-        @Column()
-        time:string
-    
-        @UpdateDateColumn()
-        updateDate: Date
-    
-        @CreateDateColumn()
-        createDate: Date
-
-        @ManyToOne(()=> User)
-        user: User
-
-        @ManyToOne(()=> Device)
-        device: Device
-=======
     id: string
 
     @Column()
@@ -63,5 +36,4 @@ export class Schedule {
 
     @ManyToOne(() => Device)
     device: Device
->>>>>>> origin/hoa
 }
