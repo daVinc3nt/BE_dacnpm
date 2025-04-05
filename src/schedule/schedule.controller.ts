@@ -1,11 +1,13 @@
-import { BadRequestException, Body, Controller, Delete, Get, Logger, Param, Post, Put, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Logger, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
 import { Schedule } from './schedule.entity';
 import { isValidUUID } from 'src/common/helper';
 import { Interval } from '@nestjs/schedule';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 @ApiTags("Schedule")
+@UseGuards(JwtAuthGuard)
 @Controller('schedule')
 export class ScheduleController {
   private readonly logger = new Logger(ScheduleController.name)

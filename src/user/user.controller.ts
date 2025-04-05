@@ -1,11 +1,13 @@
-import { Controller, Post, Body, Get, Param, Patch, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, NotFoundException, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dtos/user.create.dto';
 import { UpdateUserDto } from './dtos/user.update.dto';
 import { User } from './user.entity';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 @ApiTags('user') // Nhóm API trong Swagger
+@UseGuards(JwtAuthGuard)
 @Controller('user')
 export class UserController {
     constructor(private readonly userService: UserService) {}

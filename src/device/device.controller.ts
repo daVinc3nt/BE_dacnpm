@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { DeviceService } from './device.service';
 import { Device } from './device.entity';
 import { isValidUUID, validAction, validStatus } from 'src/common/helper';
@@ -6,8 +6,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/user/user.entity';
 import { Repository } from 'typeorm';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 @ApiTags("device")
+@UseGuards(JwtAuthGuard)
 @Controller('device')
 export class DeviceController {
   constructor(

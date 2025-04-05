@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ScheduleModule as IntervalModule } from '@nestjs/schedule';
+import { ScheduleModule } from './schedule/schedule.module';
 import { systemDataSource } from 'ormconfig';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 
@@ -8,13 +8,16 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { TransformResponseInterceptor } from './common/response';
-import { AuthModule } from './auth /auth.module';
+import { AuthModule } from './auth/auth.module';
+import { DeviceModule } from './device/device.module';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(systemDataSource.options),
     UserModule,
-    AuthModule],
+    AuthModule,
+    DeviceModule,
+    ScheduleModule],
   controllers: [AppController],
   providers: [
     AppService,

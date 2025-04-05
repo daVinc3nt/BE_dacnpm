@@ -44,7 +44,6 @@ async function bootstrap() {
 
   app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   app.setGlobalPrefix('api/v1');
-  app.useGlobalGuards(new JwtAuthGuard());
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
