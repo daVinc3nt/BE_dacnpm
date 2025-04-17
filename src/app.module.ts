@@ -10,6 +10,7 @@ import { UserModule } from './user/user.module';
 import { TransformResponseInterceptor } from './common/response';
 import { AuthModule } from './auth/auth.module';
 import { DeviceModule } from './device/device.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -17,7 +18,8 @@ import { DeviceModule } from './device/device.module';
     UserModule,
     AuthModule,
     DeviceModule,
-    ScheduleModule],
+    ScheduleModule,
+    NotificationModule],
   controllers: [AppController],
   providers: [
     AppService,

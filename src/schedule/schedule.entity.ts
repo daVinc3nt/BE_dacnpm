@@ -31,9 +31,9 @@ export class Schedule {
     @CreateDateColumn()
     createDate: Date
 
-    @ManyToOne(() => User)
-    user: User
+    @ManyToOne(() => User, (user) => user.schedules, { eager: true, onDelete: 'CASCADE' })
+    user: User;
 
-    @ManyToOne(() => Device)
-    device: Device
+    @ManyToOne(() => Device, (device) => device.schedules, { onDelete: 'CASCADE', eager: true })
+    device: Device;
 }

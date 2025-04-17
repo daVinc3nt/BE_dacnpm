@@ -6,6 +6,10 @@ import { Schedule } from "./schedule.entity";
 import { User } from "src/user/user.entity";
 import { Device } from "src/device/device.entity";
 import { isValidUUID, isValidDateFormat, validRepeat, validAction, isValidTimeOfDaily, isValidTimeOfMonthly, isValidTimeOfWeekly, isValidXDaysFormat } from "src/common/helper";
+import { DeviceService } from "src/device/device.service";
+import { CreateScheduleDto } from "./dto/schedule.create.dto";
+import { UpdateScheduleDto } from "./dto/schedule.update.dto";
+
 @Injectable()
 export class ScheduleService {
     constructor(
@@ -14,10 +18,11 @@ export class ScheduleService {
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         @InjectRepository(Device)
-        private readonly deviceRepository: Repository<Device>
+        private readonly deviceRepository: Repository<Device>,
+        private readonly deviceService: DeviceService,
     ) { }
 
-    async handleSchuduleCheck() {
+    async handleScheduleCheck() {
         const now = new Date("2025-03-11T23:00Z");
         // daily
         const nowHour = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
@@ -62,12 +67,13 @@ export class ScheduleService {
         }
         const lastArr = [...onDaily, ...onWeekly, ...onMonthly, ...onXDays];
         if (lastArr) {
-            lastArr.forEach(element => {
-                console.log(`Chạy thiết bị với id=${element.device.id}`)
-                element.lastActive = new Date()
-            });
-            await this.scheduleRepository.save(lastArr)
-        }
+    for (const element of lastArr) { // Thay forEach() bằng for...of
+        console.log(`Chạy thiết bị với id=${element.device.id}`);
+        await this.deviceService.triggerAction(element.device.id, element.action); // Chờ hoàn thành
+        element.lastActive = new Date();
+    }
+    await this.scheduleRepository.save(lastArr); // Sau khi tất cả đã hoàn thành
+}
     }
 
     async getAllSchedule(): Promise<Schedule[]> {
@@ -124,144 +130,54 @@ export class ScheduleService {
     }
 
 
-    async addSchedule(userId: string, deviceId: string, data: Schedule): Promise<Schedule> {
-        let errors: string[] = [];
+    async addSchedule(createScheduleDto: CreateScheduleDto): Promise<Schedule> {
+        const { userId, deviceId, ...data } = createScheduleDto;
 
-        // const userEnt = await this.userRepository.findOne({ where: { id: userId } })
-        // if (!userEnt)
-        //     errors.push(`Not found user with id ${userId}`)
-
-        const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } })
-        if (!deviceEnt)
-            errors.push(`Not found device with id ${deviceId}`)
-
-        if (!data.action || !validAction.includes(data.action)) {
-            errors.push(`Invalid status. Allowed values: ${validAction.join(', ')}`);
-        }
-
-        if (!data.conditon) {
-            errors.push('Condition is required.');
-        }
-
-        if (!data.time)
-            errors.push('Time is required.');
-        else if (data.repeat) {
-            if (!validRepeat.includes(data.repeat))
-                errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
-            else
-                switch (data.repeat) {
-                    case "daily":
-                        if (!isValidTimeOfDaily(data.time))
-                            errors.push(`Invalid time. Allowed values: hh:mm`)
-                        break;
-                    case "weekly":
-                        if (!isValidTimeOfWeekly(data.time))
-                            errors.push(`Invalid time. Allowed values: (day in week) hh:mm`)
-                        break;
-                    case "monthly":
-                        if (!isValidTimeOfMonthly(data.time))
-                            errors.push(`Invalid time. Allowed values: (number) hh:mm`)
-                        break;
-                    case "x days":
-                        if (!isValidXDaysFormat(data.time))
-                            errors.push(`Invalid time. Allowed is a number in range(1-99) `)
-                        else
-                            data.lastActive = new Date()
-                        break;
-                }
-        }
-
-        if (errors.length > 0) {
-            throw new BadRequestException(errors);
+        const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } });
+        if (!deviceEnt) {
+            throw new BadRequestException(`Not found device with id ${deviceId}`);
         }
 
         const nowUTC = new Date();
-        data.createDate = data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
-
-        const newDevice = this.scheduleRepository.create({
+        const schedule = this.scheduleRepository.create({
             ...data,
-            // user: { id: userId },
-            device: { id: deviceId }
+            createDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
+            updateDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
+            device: { id: deviceId },
         });
-        const savedDevice = await this.scheduleRepository.save(newDevice);
 
-        return savedDevice;
+        return this.scheduleRepository.save(schedule);
     }
 
-    async updateSchedule(id: string, data: Schedule): Promise<String> {
-        const errors: string[] = [];
-
-        if (!id) {
-            errors.push('Shedule ID is required.');
-        }
-        if (!isValidUUID(id))
-            throw new BadRequestException("Id not in UUID format")
-
-        const idSchedule = await this.scheduleRepository.findOne({ where: { id: id } })
-        if (!idSchedule) {
-            throw new NotFoundException(`Shedule with ID ${id} not found`);
+    async updateSchedule(id: string, updateScheduleDto: UpdateScheduleDto): Promise<Schedule> {
+        if (!isValidUUID(id)) {
+            throw new BadRequestException("Id not in UUID format");
         }
 
-        if (data.action && !validAction.includes(data.action)) {
-            errors.push(`Invalid status. Allowed values: ${validAction.join(', ')}`);
+        const schedule = await this.scheduleRepository.findOne({ where: { id } });
+        if (!schedule) {
+            throw new NotFoundException(`Schedule with ID ${id} not found`);
         }
 
-        if (data.repeat || data.time)
-            if (!data.time)
-                errors.push('Time is required.');
-        if (!data.repeat)
-            errors.push('Repeat is required.');
-        else if (data.repeat) {
-            if (!validRepeat.includes(data.repeat) && !isValidXDaysFormat(data.repeat))
-                errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
-            else
-                switch (data.repeat) {
-                    case "daily":
-                        if (!isValidTimeOfDaily(data.time))
-                            errors.push(`Invalid time. Allowed values: hh:mm`)
-                        break;
-                    case "weekly":
-                        if (!isValidTimeOfWeekly(data.time))
-                            errors.push(`Invalid time. Allowed values: (day in week) hh:mm`)
-                        break;
-                    case "monthly":
-                        if (!isValidTimeOfMonthly(data.time))
-                            errors.push(`Invalid time. Allowed values: (number) hh:mm`)
-                        break;
-                }
-        }
+        Object.assign(schedule, updateScheduleDto);
+        schedule.updateDate = new Date();
 
-
-        if (errors.length > 0) {
-            throw new BadRequestException(errors);
-        }
-
-        const nowUTC = new Date();
-        data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
-
-        const updateResult = await this.scheduleRepository.update({ id: id }, data);
-        if (updateResult.affected === 0) {
-            throw new BadRequestException(`Failed to update schedule with ID ${id}.`);
-        }
-        return 'Update successfully';
+        return this.scheduleRepository.save(schedule);
     }
 
-    async deleteSchedule(id: string): Promise<String> {
-        if (!isValidUUID(id))
-            throw new BadRequestException("Id not in UUID format")
-
-        const resultFind = await this.scheduleRepository.findOne({
-            where: { id: id },
-        })
-
-        if (!resultFind)
-            throw new NotFoundException(`The schedule with id ${id} isn't exist`)
-
-        const deleteDevice = await this.scheduleRepository.delete({ id: id })
-        if (deleteDevice.affected === 0) {
-            throw new BadRequestException(`Failed to delete schedule with id ${id}.`);
+    async deleteSchedule(id: string): Promise<void> {
+        if (!isValidUUID(id)) {
+            throw new BadRequestException("Id not in UUID format");
         }
 
-        return "Delete schedule successfully";
+        const schedule = await this.scheduleRepository.findOne({ where: { id } });
+        if (!schedule) {
+            throw new NotFoundException(`Schedule with ID ${id} not found`);
+        }
+
+        const result = await this.scheduleRepository.delete(id);
+        if (result.affected === 0) {
+            throw new BadRequestException(`Failed to delete schedule with ID ${id}.`);
+        }
     }
 }

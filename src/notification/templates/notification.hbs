@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Thông báo từ SmartFarm</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f4f6;
+      padding: 20px;
+      margin: 0;
+    }
+    .email-container {
+      max-width: 600px;
+      margin: auto;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      background-color: #4caf50;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    .content {
+      padding: 30px 20px;
+      color: #333333;
+    }
+    .content p {
+      line-height: 1.6;
+    }
+    .footer {
+      padding: 15px;
+      font-size: 12px;
+      color: #777777;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <h2>🌿 SmartFarm - Thông báo thiết bị</h2>
+    </div>
+    <div class="content">
+      <p>Xin chào <strong>{{username}}</strong>,</p>
+      <p>
+        Hệ thống vừa ghi nhận một cảnh báo từ thiết bị <strong>{{deviceName}}</strong> vào lúc <strong>{{time}}</strong>.
+      </p>
+      <p>{{message}}</p>
+      <p>Trân trọng,<br/>Đội ngũ SmartFarm</p>
+    </div>
+    <div class="footer">
+      Email này được gửi tự động từ hệ thống SmartFarm.<br/>
+      Vui lòng không phản hồi lại email này.
+    </div>
+  </div>
+</body>
+</html>

@@ -5,9 +5,12 @@ import { ScheduleController } from './schedule.controller';
 import { ScheduleService } from './schedule.service';
 import { User } from 'src/user/user.entity';
 import { Device } from 'src/device/device.entity';
+import { DeviceModule } from 'src/device/device.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Schedule, User, Device])],
+    imports: [
+        TypeOrmModule.forFeature([Schedule, User, Device]),
+        DeviceModule, ],
     providers: [ScheduleService],
     controllers: [ScheduleController],
     exports: [ScheduleService],

@@ -1,41 +1,40 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne, ManyToOne, JoinColumn } from 'typeorm';
-import { SensorData } from 'src/sensordata/sensordata.entity';
-import { Alert } from 'src/alert/alert.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
 import { User } from 'src/user/user.entity';
 import { Schedule } from 'src/schedule/schedule.entity';
+import { NotificationConfig } from 'src/notification/notification.entity';
 
 @Entity()
-export class Device{
+export class Device {
     @PrimaryGeneratedColumn("uuid")
-    id: string
+    id: string;
 
     @Column()
-    action:string
+    action: string;
 
-    @Column({unique:true})
-    deviceName:string
+    @Column({ unique: true })
+    deviceName: string;
 
-    @Column({nullable:true})
-    qrCode:string
+    @Column({ nullable: true })
+    qrCode: string;
 
     @Column()
-    status:string
+    status: string;
+
+    @Column({ type: 'varchar', length: 50 })
+    type: string; // Use string for type validation
 
     @UpdateDateColumn()
-    updateDate: Date
+    updateDate: Date;
 
     @CreateDateColumn()
-    createDate: Date
+    createDate: Date;
 
-    @OneToMany(() => SensorData,data => data.id,{onDelete:'CASCADE', nullable: true})
-    datalist : SensorData[]
+    @OneToMany(() => Schedule, schedule => schedule.device, { cascade: true })
+    schedules: Schedule[];
 
-    @OneToMany(() => Alert,alert => alert.id,{onDelete:'CASCADE', nullable: true})
-    alerts : Alert[]
+    @OneToMany(() => NotificationConfig, notificationConfig => notificationConfig.device, { cascade: true })
+    notificationConfigs: NotificationConfig[];
 
-    @OneToMany(() => Schedule,schedule => schedule.id,{onDelete:'CASCADE', nullable: true})
-    schedules : Schedule[]
-
-    @ManyToOne(()=> User)
-    user: User
+    @ManyToOne(() => User)
+    user: User;
 }

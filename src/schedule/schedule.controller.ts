@@ -1,27 +1,30 @@
 import { BadRequestException, Body, Controller, Delete, Get, Logger, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { ScheduleService } from './schedule.service';
-import { Schedule } from './schedule.entity';
+import { CreateScheduleDto } from './dto/schedule.create.dto';
+import { UpdateScheduleDto } from './dto/schedule.update.dto';
 import { isValidUUID } from 'src/common/helper';
 import { Interval } from '@nestjs/schedule';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
-@ApiTags("Schedule")
-@UseGuards(JwtAuthGuard)
+@ApiTags("Schedule") // Swagger tag for grouping APIs
+@UseGuards(JwtAuthGuard) // Protect routes with JWT authentication
 @Controller('schedule')
 export class ScheduleController {
-  private readonly logger = new Logger(ScheduleController.name)
+  private readonly logger = new Logger(ScheduleController.name);
 
   constructor(
     private readonly scheduleService: ScheduleService,
   ) { }
 
-  @Interval(59000)
+  // Periodically check schedules every 59 seconds
+  @Interval(5000)
   async handleScheduleCheck() {
     console.log("Đang kiểm tra lịch trình...");
-    await this.scheduleService.handleSchuduleCheck()
+    await this.scheduleService.handleScheduleCheck();
   }
 
+  // Get schedules based on query parameters or fetch all schedules
   @ApiOperation({ summary: "Lấy các lịch được duyệt theo các kiều kiện. Nếu không truyền thì sẽ lấy hết" })
   @ApiQuery({ name: "id", required: false, description: "Lấy theo ID của lịch trình cầu lấy" })
   @ApiQuery({ name: "userId", required: false, description: "Lấy theo userId" })
@@ -38,7 +41,7 @@ export class ScheduleController {
   ) {
     if (id) {
       if (!isValidUUID(id))
-        throw new BadRequestException("Id not in UUID format")
+        throw new BadRequestException("Id not in UUID format");
       return this.scheduleService.getScheduleById(id);
     }
 
@@ -46,84 +49,47 @@ export class ScheduleController {
 
     if (userId) {
       if (!isValidUUID(userId))
-        throw new BadRequestException("UserId not in UUID format")
-      whereCondition.user = { id: userId }
+        throw new BadRequestException("UserId not in UUID format");
+      whereCondition.user = { id: userId };
     }
     if (deviceId) {
       if (!isValidUUID(deviceId))
-        throw new BadRequestException("DeviceId not in UUID format")
-      whereCondition.device = { id: deviceId }
+        throw new BadRequestException("DeviceId not in UUID format");
+      whereCondition.device = { id: deviceId };
     }
 
     return this.scheduleService.getScheduleByConditions(startDate, endDate, whereCondition);
-
   }
 
-  // Example: 
+  // Create a new schedule
   @ApiOperation({ summary: "Tạo lịch mới" })
-  @ApiBody({
-    schema: {
-      example: {
-        userId: "userid123",
-        deviceId: "deviceid123",
-        action: "On",
-        actionTime: "124",
-        conditon: "> 30",
-        repeat: "daily",
-        time: "06:00"
-      }
-    }
-  })
+  @ApiBody({ type: CreateScheduleDto })
   @Post()
   async addSchedule(
-    @Body("userId") userId: string,
-    @Body("deviceId") deviceId: string,
-    @Body() data: Schedule
-  ): Promise<Schedule> {
-    if (!userId && !deviceId)
-      throw new BadRequestException("Need user id and device id")
-
-    if (!userId)
-      throw new BadRequestException("Need user id")
-    else if (!isValidUUID(userId))
-      throw new BadRequestException("userId not in UUID format")
-
-    if (!deviceId)
-      throw new BadRequestException("Need device id")
-    else if (!isValidUUID(deviceId))
-      throw new BadRequestException("deviceId not in UUID format")
-
-    return this.scheduleService.addSchedule(userId, deviceId, data);
+    @Body() createScheduleDto: CreateScheduleDto
+  ) {
+    return this.scheduleService.addSchedule(createScheduleDto);
   }
 
+  // Update an existing schedule
   @ApiOperation({ summary: "Cập nhập lịch" })
   @ApiQuery({ name: 'id', required: true, description: 'ID của schedule cần cập nhật' })
-  @ApiBody({
-    schema: {
-      example: {
-        device: "deviceid123",
-        action: "On",
-        actionTime: "124",
-        conditon: "> 30",
-        repeat: "daily",
-        time: "06:00"
-      }
-    }
-  })
+  @ApiBody({ type: UpdateScheduleDto })
   @Put()
   async updateSchedule(
     @Query('id') id: string,
-    @Body() data: Schedule
-  ): Promise<String> {
-    return this.scheduleService.updateSchedule(id, data);
+    @Body() updateScheduleDto: UpdateScheduleDto
+  ) {
+    return this.scheduleService.updateSchedule(id, updateScheduleDto);
   }
 
-  @ApiOperation({ summary: "Xóa schudule" })
-  @ApiQuery({ name: 'id', required: true, description: 'ID của schudule cần xóa' })
-  @Delete()
+  // Delete a schedule by ID
+  @ApiOperation({ summary: "Xóa Schedule" })
+  @ApiQuery({ name: 'id', required: true, description: 'ID của Schedule cần xóa' })
+  @Delete("delete")
   async deleteSchedule(
     @Query('id') id: string
-  ): Promise<String> {
-    return this.scheduleService.deleteSchedule(id);
+  ) {
+    this.scheduleService.deleteSchedule(id);
   }
 }

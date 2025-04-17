@@ -1,16 +1,19 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, LessThan, MoreThan, Repository } from "typeorm";
+import axios from "axios"; // Add this import for making HTTP requests
 
 import { Device } from "./device.entity";
 import { User } from "src/user/user.entity";
 import { validStatus } from "src/common/helper";
 import { Schedule } from "src/schedule/schedule.entity";
-import { SensorData } from "src/sensordata/sensordata.entity";
-import { Alert } from "src/alert/alert.entity";
+import { CreateDeviceDto } from './dtos/device.create.dto'; // Import the DTO
+import { UpdateDeviceDto } from './dtos/device.update.dto'; // Import the DTO
 
 @Injectable()
 export class DeviceService {
+    private readonly validDeviceTypes = ['light', 'soil', 'air', 'pump']; // Updated valid types
+
     constructor(
         @InjectRepository(Device)
         private readonly deviceRepository: Repository<Device>,
@@ -18,10 +21,6 @@ export class DeviceService {
         private readonly userRepository: Repository<User>,
         @InjectRepository(Schedule)
         private readonly scheduleRepository: Repository<Schedule>,
-        @InjectRepository(SensorData)
-        private readonly sendorDataRepository: Repository<SensorData>,
-        @InjectRepository(Alert)
-        private readonly alertRepository: Repository<Alert>
     ) { }
 
     async getDeviceById(id: string): Promise<Device> {
@@ -69,85 +68,74 @@ export class DeviceService {
         return list;
     }
 
-    async addDevice(userId: string, data: Device): Promise<Device> {
-        const errors: string[] = [];
+    async addDevice(data: CreateDeviceDto): Promise<Device> {
+        // if (!this.validDeviceTypes.includes(data.type)) {
+        //     throw new BadRequestException(`Invalid device type. Allowed values: ${this.validDeviceTypes.join(', ')}`);
+        // }
 
-        const userEnt = await this.userRepository.findOne({ where: { id: userId } })
+        const userEnt = await this.userRepository.findOne({ where: { id: data.userId } });
         if (!userEnt) {
-            errors.push(`User not found with id ${userId}`)
+            throw new BadRequestException(`User not found with id ${data.userId}`);
         }
 
-        if (!data.deviceName) {
-            errors.push('Device name is required.');
-        } else {
-            const existingDevice = await this.deviceRepository.findOne({
-                where: { deviceName: data.deviceName },
-            });
-            if (existingDevice) {
-                errors.push('Device name already exists.');
-            }
-        }
-
-        if (!data.status || !validStatus.includes(data.status)) {
-            errors.push(`Invalid status. Allowed values: ${validStatus.join(', ')}`);
-        }
-
-        if (!data.action) {
-            errors.push('Action is required.');
-        }
-
-        if (errors.length > 0) {
-            throw new BadRequestException(errors);
+        const existingDevice = await this.deviceRepository.findOne({
+            where: { deviceName: data.deviceName },
+        });
+        if (existingDevice) {
+            throw new BadRequestException('Device name already exists.');
         }
 
         const nowUTC = new Date();
-        data.createDate = data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
-
         const newDevice = this.deviceRepository.create({
             ...data,
-            user: { id: userId }
+            createDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
+            updateDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
+            // user: { id: userId },
         });
+
         return await this.deviceRepository.save(newDevice);
     }
 
-    async updateDevice(id: string, data: Device): Promise<string> {
-        const errors: string[] = [];
-
+    async updateDevice(id: string, data: UpdateDeviceDto): Promise<string> {
         if (!id) {
-            errors.push('Device ID is required.');
+            throw new BadRequestException('Device ID is required.');
         }
-        const idDevice = await this.deviceRepository.findOne({ where: { id: id } })
-        if (!idDevice) {
+
+        const existingDevice = await this.deviceRepository.findOne({ where: { id } });
+        if (!existingDevice) {
             throw new NotFoundException(`Device with ID ${id} not found`);
         }
 
         if (data.deviceName) {
-            const existingDevice = await this.deviceRepository.findOne({
+            const duplicateDevice = await this.deviceRepository.findOne({
                 where: { deviceName: data.deviceName },
             });
-            if (existingDevice) {
-                errors.push('Device name already exists.');
+            if (duplicateDevice && duplicateDevice.id !== id) {
+                throw new BadRequestException('Device name already exists.');
             }
         }
 
         if (data.status && !validStatus.includes(data.status)) {
-            errors.push(`Invalid status. Allowed values: ${validStatus.join(', ')}`);
+            throw new BadRequestException(`Invalid status. Allowed values: ${validStatus.join(', ')}`);
         }
 
-        if (errors.length > 0) {
-            throw new BadRequestException(errors);
+        if (data.type && !this.validDeviceTypes.includes(data.type)) {
+            throw new BadRequestException(`Invalid device type. Allowed values: ${this.validDeviceTypes.join(', ')}`);
         }
 
         const nowUTC = new Date();
-        data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
+        const updatedData = {
+            ...data,
+            updateDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
+        };
 
-        const updateResult = await this.deviceRepository.update({ id: id }, data);
+        const updateResult = await this.deviceRepository.update({ id }, updatedData);
         if (updateResult.affected === 0) {
             throw new BadRequestException(`Failed to update device with ID ${id}.`);
         }
+
         return 'Update successfully';
     }
-
 
     async deleteDevice(id: string): Promise<String> {
         const resultFind = await this.deviceRepository.findOne({
@@ -162,21 +150,55 @@ export class DeviceService {
             this.scheduleRepository.delete({ id: schedule.id })
         ));
 
-        const alerts = await this.alertRepository.find({where:{ device: {id: id}}})
-        await Promise.all(alerts.map(alert => 
-            this.alertRepository.delete({ id: alert.id })
-        ));
-
-        const sensorDatas = await this.sendorDataRepository.find({where:{ device: {id: id}}})
-        await Promise.all(sensorDatas.map(sensorData => 
-            this.sendorDataRepository.delete({ id: sensorData.id })
-        ));
-
         const deleteDevice = await this.deviceRepository.delete({ id: id })
         if (deleteDevice.affected === 0) {
             throw new BadRequestException(`Failed to delete device with id ${id}.`);
         }
 
         return "Delete device successfully";
+    }
+
+    async triggerAction( qrCode: string, value: string): Promise<string> {
+        const url = `https://io.adafruit.com/api/v2/hoahaoce/feeds/${qrCode}/data`;
+        const headers = {
+            "X-AIO-Key": process.env.ADAFRUIT_IO_KEY || 123456,
+            "Content-Type": "application/json",
+        };
+        const body = { value };
+
+        try {
+            const response = await axios.post(url, body, { headers });
+            if (response.status === 200 || response.status === 201) {
+                return "Action triggered successfully.";
+            } else {
+                throw new Error(`Unexpected response status: ${response.status}`);
+            }
+        } catch (error) {
+            throw new BadRequestException(`Failed to trigger action: ${error.message}`);
+        }
+    }
+
+    async getDeviceData(deviceId: string): Promise<any> {
+        const device = await this.deviceRepository.findOne({ where: { id: deviceId } });
+        if (!device) {
+            throw new NotFoundException(`Device with ID ${deviceId} not found`);
+        }
+
+        const url = `https://io.adafruit.com/api/v2/hoahaoce/feeds/${device.qrCode}/data`;
+        const headers = {
+            "X-AIO-Key": process.env.ADAFRUIT_IO_KEY || "123456",
+            "Content-Type": "application/json",
+        };
+        console.log(url)
+        try {
+            const response = await axios.get(url, { headers });
+            if (response.status === 200) {
+                return response.data; // Return the actual data from the response
+            } else {
+                throw new Error(`Unexpected response status: ${response.status}`);
+            }
+        } catch (error) {
+            throw new BadRequestException(`Failed to get data: ${error.message}`);
+        }
     }
 }

@@ -19,7 +19,7 @@ export class UserController {
         schema: {
             example: {
                 fullName: "Nguyễn Văn A",
-                email: "example@gmail.com",
+                email: "quangtran.dvincent@gmail.com",
                 googleId: "1234567890",
                 avaUrl: "https://example.com/avatar.png",
             }
@@ -82,7 +82,7 @@ export class UserController {
         schema: {
             example: {
                 name: "Nguyễn Văn A",
-                email: "example@gmail.com",
+                email: "quangtran.dvicent@gmail.com",
                 id: "1234567890",
                 picture: "https://example.com/avatar.png",
             }
