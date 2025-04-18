@@ -14,9 +14,16 @@ export class ScheduleController {
     private readonly scheduleService: ScheduleService,
   ) { }
 
-  @Interval(59000)
+  @Interval(60000)
   async handleScheduleCheck() {
-    console.log("Đang kiểm tra lịch trình...");
+    const nowHour = new Date().toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh"
+    });
+
+    console.log(`${nowHour} Đang kiểm tra lịch trình...`);
     await this.scheduleService.handleSchuduleCheck()
   }
 
@@ -37,7 +44,7 @@ export class ScheduleController {
     if (id) {
       if (!isValidUUID(id))
         throw new BadRequestException("Id not in UUID format")
-      return this.scheduleService.getScheduleById(id);
+      return this.scheduleService.findById(id);
     }
 
     const whereCondition: any = {};

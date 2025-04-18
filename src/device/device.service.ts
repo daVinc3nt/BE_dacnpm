@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, LessThan, MoreThan, Repository } from "typeorm";
 
@@ -8,10 +8,12 @@ import { validStatus } from "src/common/helper";
 import { Schedule } from "src/schedule/schedule.entity";
 import { SensorData } from "src/sensordata/sensordata.entity";
 import { Alert } from "src/alert/alert.entity";
+import { BaseService } from "src/common/service/base_service";
 
 @Injectable()
-export class DeviceService {
+export class DeviceService extends BaseService<Device, Repository<Device>> {
     constructor(
+        logger: Logger,
         @InjectRepository(Device)
         private readonly deviceRepository: Repository<Device>,
         @InjectRepository(User)
@@ -22,14 +24,8 @@ export class DeviceService {
         private readonly sendorDataRepository: Repository<SensorData>,
         @InjectRepository(Alert)
         private readonly alertRepository: Repository<Alert>
-    ) { }
-
-    async getDeviceById(id: string): Promise<Device> {
-        const device = await this.deviceRepository.findOne({ where: { id: id } });
-        if (!device) {
-            throw new NotFoundException(`Device with ID ${id} not found`);
-        }
-        return device;
+    ) { 
+        super(deviceRepository, logger)
     }
 
     async getDevicesByConditions(startDate: string, endDate: string, whereCondition: any): Promise<Device[]> {
@@ -141,10 +137,8 @@ export class DeviceService {
         const nowUTC = new Date();
         data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
 
-        const updateResult = await this.deviceRepository.update({ id: id }, data);
-        if (updateResult.affected === 0) {
-            throw new BadRequestException(`Failed to update device with ID ${id}.`);
-        }
+        await super.update(id , data);
+        
         return 'Update successfully';
     }
 
@@ -172,10 +166,8 @@ export class DeviceService {
             this.sendorDataRepository.delete({ id: sensorData.id })
         ));
 
-        const deleteDevice = await this.deviceRepository.delete({ id: id })
-        if (deleteDevice.affected === 0) {
-            throw new BadRequestException(`Failed to delete device with id ${id}.`);
-        }
+        await super.delete(id)
+
 
         return "Delete device successfully";
     }

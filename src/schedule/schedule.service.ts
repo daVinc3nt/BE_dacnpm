@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, LessThan, MoreThan, Raw, Repository } from "typeorm";
 
@@ -6,21 +6,30 @@ import { Schedule } from "./schedule.entity";
 import { User } from "src/user/user.entity";
 import { Device } from "src/device/device.entity";
 import { isValidUUID, isValidDateFormat, validRepeat, validAction, isValidTimeOfDaily, isValidTimeOfMonthly, isValidTimeOfWeekly, isValidXDaysFormat } from "src/common/helper";
+import { BaseService } from "src/common/service/base_service";
 @Injectable()
-export class ScheduleService {
+export class ScheduleService extends BaseService<Schedule, Repository<Schedule>> {
     constructor(
+        logger: Logger,
         @InjectRepository(Schedule)
         private readonly scheduleRepository: Repository<Schedule>,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         @InjectRepository(Device)
         private readonly deviceRepository: Repository<Device>
-    ) { }
+    ) {
+        super(scheduleRepository, logger)
+    }
 
     async handleSchuduleCheck() {
-        const now = new Date("2025-03-11T23:00Z");
+        const now = super.getNowVnDate();
         // daily
-        const nowHour = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        const nowHour = now.toLocaleTimeString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Asia/Ho_Chi_Minh"
+        });
+
         const onDaily = await this.scheduleRepository.find({ where: { repeat: "daily", time: nowHour }, relations: ['device'] })
         // weekly
         const timeOfWeekly = ["sun", "mon", "tue", "wed", "thur", "fri", "sat"]
@@ -60,29 +69,15 @@ export class ScheduleService {
                 onXDays.push(schedule);
             }
         }
+
         const lastArr = [...onDaily, ...onWeekly, ...onMonthly, ...onXDays];
         if (lastArr) {
             lastArr.forEach(element => {
-                console.log(`Chạy thiết bị với id=${element.device.id}`)
-                element.lastActive = new Date()
+                console.log(`Chạy thiết bị với id=${element.device.id}, schedule= ${element.id}`)
+                element.lastActive = now
             });
             await this.scheduleRepository.save(lastArr)
         }
-    }
-
-    async getAllSchedule(): Promise<Schedule[]> {
-        const list_schedule = await this.scheduleRepository.find();
-        if (!list_schedule.length)
-            return [];
-        return list_schedule;
-    }
-
-    async getScheduleById(id: string): Promise<Schedule> {
-        const schedule = await this.scheduleRepository.findOne({ where: { id } });
-        if (!schedule) {
-            throw new NotFoundException(`Schedule with ID ${id} not found`);
-        }
-        return schedule;
     }
 
     async getScheduleByConditions(startDate: string, endDate: string, whereCondition: any): Promise<Schedule[]> {
@@ -127,9 +122,9 @@ export class ScheduleService {
     async addSchedule(userId: string, deviceId: string, data: Schedule): Promise<Schedule> {
         let errors: string[] = [];
 
-        // const userEnt = await this.userRepository.findOne({ where: { id: userId } })
-        // if (!userEnt)
-        //     errors.push(`Not found user with id ${userId}`)
+        const userEnt = await this.userRepository.findOne({ where: { id: userId } })
+        if (!userEnt)
+            errors.push(`Not found user with id ${userId}`)
 
         const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } })
         if (!deviceEnt)
@@ -142,6 +137,8 @@ export class ScheduleService {
         if (!data.conditon) {
             errors.push('Condition is required.');
         }
+
+        const nowVN = super.getNowVnDate();
 
         if (!data.time)
             errors.push('Time is required.');
@@ -165,8 +162,10 @@ export class ScheduleService {
                     case "x days":
                         if (!isValidXDaysFormat(data.time))
                             errors.push(`Invalid time. Allowed is a number in range(1-99) `)
-                        else
-                            data.lastActive = new Date()
+                        else {
+
+                            data.lastActive = nowVN
+                        }
                         break;
                 }
         }
@@ -175,12 +174,11 @@ export class ScheduleService {
             throw new BadRequestException(errors);
         }
 
-        const nowUTC = new Date();
-        data.createDate = data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
+        data.createDate = data.updateDate = nowVN;
 
         const newDevice = this.scheduleRepository.create({
             ...data,
-            // user: { id: userId },
+            user: { id: userId },
             device: { id: deviceId }
         });
         const savedDevice = await this.scheduleRepository.save(newDevice);
@@ -239,10 +237,8 @@ export class ScheduleService {
         const nowUTC = new Date();
         data.updateDate = new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000);
 
-        const updateResult = await this.scheduleRepository.update({ id: id }, data);
-        if (updateResult.affected === 0) {
-            throw new BadRequestException(`Failed to update schedule with ID ${id}.`);
-        }
+        await super.update(id, data);
+
         return 'Update successfully';
     }
 
@@ -257,11 +253,7 @@ export class ScheduleService {
         if (!resultFind)
             throw new NotFoundException(`The schedule with id ${id} isn't exist`)
 
-        const deleteDevice = await this.scheduleRepository.delete({ id: id })
-        if (deleteDevice.affected === 0) {
-            throw new BadRequestException(`Failed to delete schedule with id ${id}.`);
-        }
-
+        await super.delete(id)
         return "Delete schedule successfully";
     }
 }

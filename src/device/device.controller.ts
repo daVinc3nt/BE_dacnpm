@@ -35,7 +35,7 @@ export class DeviceController {
     if (id) {
       if (!isValidUUID(id))
         throw new BadRequestException("Id not in UUID format")
-      return this.deviceService.getDeviceById(id);
+      return this.deviceService.findById(id);
     }
     const whereCondition: any = {};
 

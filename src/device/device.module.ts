@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { DeviceController } from './device.controller';
 import { DeviceService } from './device.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -10,7 +10,7 @@ import { SensorData } from 'src/sensordata/sensordata.entity';
 
 @Module({
     imports: [TypeOrmModule.forFeature([Device, User, Schedule, Alert, SensorData])],
-    providers: [DeviceService],
+    providers: [DeviceService, {provide: Logger, useClass: Logger}],
     controllers: [DeviceController],
     exports: [DeviceService],
 })
