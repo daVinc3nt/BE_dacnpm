@@ -108,9 +108,6 @@ export class UserService {
         try {
             const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'defaultSecret'); // Decode the token
             const userId = decoded.id; // Extract user ID from the token payload
-            if (!isUUID(userId)) {
-                throw new BadRequestException('Invalid user ID format');
-              }
             return this.findUserById(userId); // Fetch user information by ID
         } catch (error) {
             console.error('Error decoding token:', error.message); // Log the error
