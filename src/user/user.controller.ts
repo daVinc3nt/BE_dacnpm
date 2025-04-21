@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch, NotFoundException, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, NotFoundException, UseGuards, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dtos/user.create.dto';
@@ -12,6 +12,7 @@ import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 export class UserController {
     constructor(private readonly userService: UserService) {}
 
+    // -------------------- CREATE USER --------------------
     @ApiOperation({ summary: 'Tạo user mới' })
     @ApiResponse({ status: 201, description: 'User được tạo thành công.' })
     @ApiBody({
@@ -30,26 +31,7 @@ export class UserController {
         return this.userService.createUser(createUserDto);
     }
 
-    @ApiOperation({ summary: 'Lấy user theo email' })
-    @ApiResponse({ status: 200, description: 'Trả về thông tin user.' })
-    @ApiResponse({ status: 404, description: 'User không tồn tại.' })
-    @ApiParam({ name: 'email', required: true, description: 'Email của user cần tìm' })
-    @Get('email/:email')
-    async getUserByEmail(@Param('email') email: string): Promise<User> {
-        const user = await this.userService.findUserByEmail(email);
-        if (!user) throw new NotFoundException(`User với email ${email} không tồn tại`);
-        return user;
-    }
-
-    @ApiOperation({ summary: 'Lấy user theo ID' })
-    @ApiResponse({ status: 200, description: 'Trả về thông tin user.' })
-    @ApiResponse({ status: 404, description: 'User không tồn tại.' })
-    @ApiParam({ name: 'id', required: true, description: 'ID của user cần tìm' })
-    @Get(':id')
-    async getUserById(@Param('id') id: string): Promise<User> {
-        return this.userService.findUserById(id);
-    }
-
+    // -------------------- GET ALL USERS --------------------
     @ApiOperation({ summary: 'Lấy danh sách tất cả user' })
     @ApiResponse({ status: 200, description: 'Danh sách user.' })
     @Get()
@@ -57,6 +39,7 @@ export class UserController {
         return this.userService.findAllUser();
     }
 
+    // -------------------- UPDATE USER --------------------
     @ApiOperation({ summary: 'Cập nhật thông tin user' })
     @ApiResponse({ status: 200, description: 'User đã được cập nhật.' })
     @ApiResponse({ status: 404, description: 'User không tồn tại.' })
@@ -70,26 +53,25 @@ export class UserController {
             }
         }
     })
-    @Patch(':id')
+    @Patch('update/:id')
     async updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto): Promise<User> {
         return this.userService.updateUser(id, updateUserDto);
     }
-
-    @ApiOperation({ summary: 'Tìm hoặc tạo user từ Google OAuth' })
+    // -------------------- GET USER INFO FROM TOKEN --------------------
+    @ApiOperation({ summary: 'Lấy thông tin user từ token' })
     @ApiResponse({ status: 200, description: 'Trả về thông tin user.' })
-    @ApiBody({
-        description: 'Thông tin user từ Google',
-        schema: {
-            example: {
-                name: "Nguyễn Văn A",
-                email: "quangtran.dvicent@gmail.com",
-                id: "1234567890",
-                picture: "https://example.com/avatar.png",
-            }
+    @ApiResponse({ status: 401, description: 'Token không hợp lệ hoặc không được cung cấp.' })
+
+    @Get('info')
+    async getUserInfo(@Headers('Authorization') authorization: string): Promise<User> {
+        if (!authorization) {
+            throw new NotFoundException('Authorization header is missing');
         }
-    })
-    @Post('google')
-    async findOrCreateGoogleUser(@Body() googleUser: any): Promise<User> {
-        return this.userService.findOrCreateUser(googleUser);
+        const token = authorization.replace('Bearer ', ''); // Extract token from "Bearer <token>"
+        const user = await this.userService.getUserFromToken(token);
+        if (!user) {
+            throw new NotFoundException('User không tồn tại hoặc token không hợp lệ');
+        }
+        return user;
     }
 }

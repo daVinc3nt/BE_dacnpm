@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { User } from './user.entity';
 import { CreateUserDto } from './dtos/user.create.dto';
 import { UpdateUserDto } from './dtos/user.update.dto';
+import * as jwt from 'jsonwebtoken';
+import { isUUID } from 'class-validator';
 
 @Injectable()
 export class UserService {
@@ -94,5 +96,25 @@ export class UserService {
         }
 
         return user;
+    }
+
+    // ✅ Tìm user theo Google ID
+    async findUserByGoogleId(googleId: string): Promise<User | undefined> {
+        return this.userRepository.findOne({ where: { googleId } });
+    }
+
+    // ✅ Lấy thông tin user từ token
+    async getUserFromToken(token: string): Promise<User | undefined> {
+        try {
+            const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'defaultSecret'); // Decode the token
+            const userId = decoded.id; // Extract user ID from the token payload
+            if (!isUUID(userId)) {
+                throw new BadRequestException('Invalid user ID format');
+              }
+            return this.findUserById(userId); // Fetch user information by ID
+        } catch (error) {
+            console.error('Error decoding token:', error.message); // Log the error
+            throw new Error('Invalid token');
+        }
     }
 }

@@ -24,7 +24,10 @@ export class DeviceService {
     ) { }
 
     async getDeviceById(id: string): Promise<Device> {
-        const device = await this.deviceRepository.findOne({ where: { id: id } });
+        const device = await this.deviceRepository.findOne({
+            where: { id: id },
+            relations: ['user'], // Ensure the user relationship is loaded
+        });
         if (!device) {
             throw new NotFoundException(`Device with ID ${id} not found`);
         }
@@ -69,20 +72,16 @@ export class DeviceService {
     }
 
     async addDevice(data: CreateDeviceDto): Promise<Device> {
-        // if (!this.validDeviceTypes.includes(data.type)) {
-        //     throw new BadRequestException(`Invalid device type. Allowed values: ${this.validDeviceTypes.join(', ')}`);
-        // }
-
         const userEnt = await this.userRepository.findOne({ where: { id: data.userId } });
         if (!userEnt) {
             throw new BadRequestException(`User not found with id ${data.userId}`);
         }
 
         const existingDevice = await this.deviceRepository.findOne({
-            where: { deviceName: data.deviceName },
+            where: { deviceName: data.deviceName, user: { id: userEnt.id } }, // Ensure the device belongs to the user
         });
         if (existingDevice) {
-            throw new BadRequestException('Device name already exists.');
+            throw new BadRequestException('Device name already exists for this user.');
         }
 
         const nowUTC = new Date();
@@ -90,7 +89,7 @@ export class DeviceService {
             ...data,
             createDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
             updateDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
-            // user: { id: userId },
+            user: { id: userEnt.id }
         });
 
         return await this.deviceRepository.save(newDevice);
@@ -200,5 +199,30 @@ export class DeviceService {
         } catch (error) {
             throw new BadRequestException(`Failed to get data: ${error.message}`);
         }
+    }
+
+    async getFirstDataPointsForUser(userId: string): Promise<{ label: string; value: any }[]> {
+        // Fetch all devices for the user with action 'trigger'
+        const devices = await this.deviceRepository.find({
+            where: { user: { id: userId }, action: 'trigger' },
+            relations: ['user'],
+        });
+
+        if (!devices.length) {
+            throw new NotFoundException(`No devices with action 'trigger' found for user with ID ${userId}`);
+        }
+
+        const firstDataPoints = await Promise.all(
+            devices.map(async (device) => {
+                const deviceData = await this.getDeviceData(device.id); // Fetch data for the device
+                if (deviceData.length > 0) {
+                    return { label: device.deviceName, value: deviceData[0].value }; // Return object with label and value
+                }
+                return null; // If no data, return null
+            })
+        );
+
+        // Filter out null values (devices with no data)
+        return firstDataPoints.filter((dataPoint) => dataPoint !== null);
     }
 }

@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Headers, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { DeviceService } from './device.service';
 import { Device } from './device.entity';
 import { isValidUUID, validAction, validStatus } from 'src/common/helper';
@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { ApiBody, ApiOperation, ApiQuery, ApiTags, ApiResponse } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { CreateDeviceDto } from './dtos/device.create.dto';
+import * as jwt from 'jsonwebtoken';
 
 @ApiTags("device")
 @UseGuards(JwtAuthGuard)
@@ -22,7 +23,6 @@ export class DeviceController {
   // -------------------- GET DEVICES --------------------
   @ApiOperation({ summary: 'Get devices with optional filters or all devices if no filters are provided' })
   @ApiQuery({ name: 'id', required: false, description: 'Filter by device ID' })
-  @ApiQuery({ name: 'userId', required: false, description: 'Filter by user ID' })
   @ApiQuery({ name: 'action', required: false, description: 'Filter by action type' })
   @ApiQuery({ name: 'status', required: false, enum: validAction, description: 'Filter by status' })
   @ApiQuery({ name: 'startDate', required: false, type: String, description: 'Filter by start date (format: YYYY-MM-DD HH:mm)' })
@@ -30,40 +30,58 @@ export class DeviceController {
   @Get()
   async getDevices(
     @Query("id") id: string,
-    @Query("userId") userId: string,
     @Query("action") action: string,
     @Query("status") status: string,
     @Query("startDate") startDate: string,
-    @Query("endDate") endDate: string
-  ) {
+    @Query("endDate") endDate: string,
+    @Headers('Authorization') authorization: string // Extract user info from token
+  ): Promise<Device[]> {
+    if (!authorization) {
+      throw new BadRequestException("Authorization header is missing");
+    }
+
+    const token = authorization.replace('Bearer ', '');
+    const decoded: any = this.decodeToken(token); // Decode the token to get user info
+    console.log("hello",decoded) 
+    const currentUserId = decoded.id;
+
+    if (!currentUserId) {
+      throw new BadRequestException("Invalid token or user ID");
+    }
+
     if (id) {
-      if (!isValidUUID(id))
-        throw new BadRequestException("Id not in UUID format")
-      return this.deviceService.getDeviceById(id);
-    }
-    const whereCondition: any = {};
-
-    if (userId) {
-      if (!isValidUUID(userId))
-        throw new BadRequestException("UserId not in UUID format")
-
-      const userEnt = this.userRepository.findOne({ where: { id: userId } })
-      if (!userEnt)
-        throw new BadRequestException("Not found user");
-
-      whereCondition.user = { id: userId }
+      if (!isValidUUID(id)) {
+        throw new BadRequestException("Id not in UUID format");
+      }
+      const device = await this.deviceService.getDeviceById(id);
+      if (device.user.id !== currentUserId) {
+        throw new BadRequestException("You are not authorized to access this device");
+      }
+      return [device]; // Wrap the single device in an array
     }
 
-    if (action)
-      whereCondition.action = action
+    const whereCondition: any = { user: { id: currentUserId } }; // Restrict to devices owned by the current user
+
+    if (action) {
+      whereCondition.action = action;
+    }
 
     if (status) {
-      if (!validStatus.includes(status))
-        throw new BadRequestException(`Invalid status. Allowed values: ${validStatus.join(', ')}`)
-      whereCondition.status = status
+      if (!validStatus.includes(status)) {
+        throw new BadRequestException(`Invalid status. Allowed values: ${validStatus.join(', ')}`);
+      }
+      whereCondition.status = status;
     }
 
-    return this.deviceService.getDevicesByConditions(startDate, endDate, whereCondition)
+    return this.deviceService.getDevicesByConditions(startDate, endDate, whereCondition);
+  }
+
+  private decodeToken(token: string): any {
+    try {
+      return jwt.verify(token, process.env.JWT_SECRET || 'defaultSecret');
+    } catch (error) {
+      throw new BadRequestException("Invalid token");
+    }
   }
 
   // -------------------- ADD DEVICE --------------------
@@ -195,5 +213,27 @@ export class DeviceController {
       throw new BadRequestException("Device ID is required");
     }
     return this.deviceService.getDeviceData(deviceId);
+  }
+
+  // -------------------- GET FIRST DATA POINTS FOR USER --------------------
+  @ApiOperation({ summary: 'Get the first data points of all devices with action "view" for a specific user' })
+  @ApiQuery({ name: 'userId', required: true, description: 'ID of the user to fetch data for' })
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully retrieved the first data points for all devices',
+    schema: {
+      example: [
+        { id: 'data-id-1', value: '50', created_at: '2023-01-01T12:00:00Z' },
+        { id: 'data-id-2', value: '60', created_at: '2023-01-02T12:00:00Z' },
+      ],
+    },
+  })
+  @ApiResponse({ status: 404, description: 'No devices with action "view" found for the user' })
+  @Get('first-data-points')
+  async getFirstDataPointsForUser(@Query('userId') userId: string): Promise<any[]> {
+    if (!userId) {
+      throw new BadRequestException('User ID is required');
+    }
+    return this.deviceService.getFirstDataPointsForUser(userId);
   }
 }

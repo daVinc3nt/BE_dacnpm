@@ -3,6 +3,7 @@ import axios from 'axios';
 import * as jwt from 'jsonwebtoken';
 import { config } from 'dotenv';
 import { UserService } from 'src/user/user.service';
+import { User } from 'src/user/user.entity';
 
 config();
 
@@ -26,10 +27,15 @@ export class AuthService {
     const googleUser = await this.getGoogleUser(code);
 
     // 2. Kiểm tra hoặc tạo user trong DB thông qua UserService
-    const user = await this.userService.findOrCreateUser(googleUser);
+    const user: User = await this.userService.findOrCreateUser(googleUser);
 
     // 3. Tạo JWT token
-    const payload = { id: user.id, email: user.email };
+    const payload = {
+      id: user.id, 
+      email: user.email, 
+      fullname: user.fullName,  
+      avatar: user.avaUrl
+    };
     return jwt.sign(payload, this.jwtSecret, { expiresIn: '1h' });
   }
 

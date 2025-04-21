@@ -1,4 +1,4 @@
-import { IsUUID, IsPositive, IsNotEmpty } from 'class-validator';
+import { IsUUID, IsPositive, IsNotEmpty, IsString, IsOptional, MaxLength, IsBoolean } from 'class-validator';
 
 export class CreateNotificationConfigDto {
   @IsUUID()
@@ -12,4 +12,17 @@ export class CreateNotificationConfigDto {
   @IsPositive()
   @IsNotEmpty()
   frequencyMinutes: number;
+
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  title: string; // Title of the notification
+
+  @IsString()
+  @IsOptional()
+  description?: string; // Optional description of the notification
 }

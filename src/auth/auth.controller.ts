@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Redirect, Req, Res } from '@nestjs/common';
+import { Controller, Get, Headers, Query, Redirect, Req, Res } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Request, Response } from 'express';
 
@@ -17,4 +17,15 @@ export class AuthController {
     const token = await this.authService.handleGoogleCallback(code);
     return res.redirect(`${process.env.FRONTEND_REDIRECT_URI}?token=${token}`);
   }
+
+  // // -------------------- GET GOOGLE USER --------------------
+  // @Get('google/user')
+  // async getGoogleUser(@Headers('Authorization') authorization: string): Promise<any> {
+  //   if (!authorization) {
+  //     throw new Error('Authorization header is missing');
+  //   }
+
+  //   const token = authorization.replace('Bearer ', ''); // Extract token from "Bearer <token>"
+  //   return this.authService.getGoogleUser(token);
+  // }
 }

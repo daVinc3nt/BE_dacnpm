@@ -18,6 +18,8 @@ export class NotificationController {
         userId: '40C9423E-F36B-1410-81F1-005102F3C87D',
         deviceId: '44C9423E-F36B-1410-81F1-005102F3C87D',
         frequencyMinutes: 30,
+        title: 'Notification Title',
+        description: 'Notification Description',
       },
     },
   })

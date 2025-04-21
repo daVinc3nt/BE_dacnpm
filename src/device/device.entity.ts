@@ -11,7 +11,7 @@ export class Device {
     @Column()
     action: string;
 
-    @Column({ unique: true })
+    @Column()
     deviceName: string;
 
     @Column({ nullable: true })

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationConfig } from './notification.entity';
@@ -20,37 +20,60 @@ export class NotificationService {
   ) {}
 
   async createOrUpdate(createDto: CreateNotificationConfigDto) {
-    const { userId, frequencyMinutes, deviceId } = createDto;
+    const { userId, deviceId, frequencyMinutes, title, description, active } = createDto;
 
-    // Thêm relations để lấy đầy đủ thông tin liên quan
+    // Ensure the user and device exist
+    const user = await this.configRepository.manager.findOne('User', { where: { id: userId } });
+    if (!user) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const device = await this.configRepository.manager.findOne('Device', { where: { id: deviceId } });
+    if (!device) {
+        throw new NotFoundException(`Device with ID ${deviceId} not found`);
+    }
+
+    // Check if a notification config already exists for the device
     let config = await this.configRepository.findOne({
-      where: { device: { id: deviceId } },
-      relations: ['device', 'device.user'], // Load các mối quan hệ cần thiết
+        where: { device: { id: deviceId } },
+        relations: ['device', 'user'], // Load necessary relations
     });
 
     if (config) {
-      config.frequencyMinutes = frequencyMinutes;
+        // Update existing config
+        config.frequencyMinutes = frequencyMinutes;
+        config.title = title;
+        config.description = description;
+        config.active =active;
     } else {
-      config = this.configRepository.create({
-        device: { id: deviceId },
-        user: { id: userId },
-        frequencyMinutes,
-      });
+        // Create a new config
+        config = this.configRepository.create({
+            active,
+            frequencyMinutes,
+            title,
+            description,
+            user, // Assign the user relationship
+            device, // Assign the device relationship
+        });
     }
-
+    console.log(config)
     return this.configRepository.save(config);
   }
 
-  async findOne(userId: string, deviceId: string) {
-    return this.configRepository.findOne({
-      where: {
-        device: {
-          id: deviceId,
-          user: { id: userId },
+  async findOne(userId: string, deviceId: string): Promise<NotificationConfig> {
+    const config = await this.configRepository.findOne({
+        where: {
+            user: { id: userId },
+            device: { id: deviceId },
         },
-      },
-      relations: ['device', 'device.user'], // Không cần lặp lại 'device'
+        relations: ['user', 'device'], // Ensure relationships are loaded
     });
+
+    if (!config) {
+        throw new NotFoundException(`NotificationConfig not found for userId: ${userId} and deviceId: ${deviceId}`);
+    }
+
+    return config;
   }
 
   async update(userDeviceId: string, updateDto: UpdateNotificationConfigDto) {
@@ -62,7 +85,7 @@ export class NotificationService {
     if (!config) {
       throw new Error('NotificationConfig not found');
     }
-
+    await this.configRepository.update(userDeviceId, updateDto);
     Object.assign(config, updateDto); // Cập nhật các trường từ DTO
     return this.configRepository.save(config); // Lưu lại thay đổi
   }

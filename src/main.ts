@@ -37,8 +37,9 @@ async function bootstrap() {
   app.enableCors({
     allowedHeaders: ['Authorization', 'Content-Type'],
     exposedHeaders: ['Authorization'],
-    origin: '*', 
+    origin: 'http://localhost:3000', 
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true
   });
   
 
@@ -46,6 +47,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+
+  app.use((req, res, next) => {
+    console.log(`Incoming request: ${req.method} ${req.url}`);
+    next();
+  });
 
   await app.listen(8000);
   console.log(app.getHttpServer()._events.request._router.stack

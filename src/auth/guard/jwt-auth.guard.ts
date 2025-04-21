@@ -1,4 +1,5 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import * as jwt from 'jsonwebtoken';
 import { config } from 'dotenv';
 
@@ -6,25 +7,25 @@ config();
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-    private readonly jwtSecret = process.env.JWT_SECRET;
-    private readonly specialTestToken = 'TEST_TOKEN';
+    constructor(private reflector: Reflector) {}
 
     canActivate(context: ExecutionContext): boolean {
         const request = context.switchToHttp().getRequest();
-        const authHeader = request.headers.authorization;
+        const authorization = request.headers['authorization'];
+        console.log('Authorization header in guard:', authorization); // Log the Authorization header
 
-        if (!authHeader) return false;
-        const token = authHeader.split(' ')[1]; // Lấy token từ header
+        if (!authorization) {
+            console.log('Authorization header is missing');
+            return false;
+        }
 
-        // 🎯 Nếu token là TEST_TOKEN thì luôn cho phép truy cập
-        if (token === this.specialTestToken) return true;
-
+        const token = authorization.replace('Bearer ', '');
         try {
-            const decoded = jwt.verify(token, this.jwtSecret);
-            request.user = decoded; // Gán user vào request
+            jwt.verify(token, process.env.JWT_SECRET || 'defaultSecret');
             return true;
-        } catch (err) {
-            throw new UnauthorizedException('Token is invalid');
+        } catch (error) {
+            console.log('Invalid token:', error.message);
+            return false;
         }
     }
 }
