@@ -42,7 +42,7 @@ export class ScheduleController {
     if (id) {
       if (!isValidUUID(id))
         throw new BadRequestException("Id not in UUID format");
-      return this.scheduleService.getScheduleById(id);
+      return this.scheduleService.findById(id);
     }
 
     const whereCondition: any = {};

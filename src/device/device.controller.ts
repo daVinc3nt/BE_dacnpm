@@ -53,7 +53,7 @@ export class DeviceController {
       if (!isValidUUID(id)) {
         throw new BadRequestException("Id not in UUID format");
       }
-      const device = await this.deviceService.getDeviceById(id);
+      const device = await this.deviceService.findById(id, ['user']);
       if (device.user.id !== currentUserId) {
         throw new BadRequestException("You are not authorized to access this device");
       }

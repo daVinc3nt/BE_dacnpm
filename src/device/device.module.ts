@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { DeviceController } from './device.controller';
 import { DeviceService } from './device.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -8,7 +8,7 @@ import { Schedule } from 'src/schedule/schedule.entity';
 
 @Module({
     imports: [TypeOrmModule.forFeature([Device, User, Schedule])],
-    providers: [DeviceService],
+    providers: [DeviceService, Logger],
     controllers: [DeviceController],
     exports: [DeviceService],
 })

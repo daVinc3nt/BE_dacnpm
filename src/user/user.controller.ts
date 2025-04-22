@@ -36,7 +36,7 @@ export class UserController {
     @ApiResponse({ status: 200, description: 'Danh sách user.' })
     @Get()
     async getAllUsers(): Promise<User[]> {
-        return this.userService.findAllUser();
+        return this.userService.findAll();
     }
 
     // -------------------- UPDATE USER --------------------

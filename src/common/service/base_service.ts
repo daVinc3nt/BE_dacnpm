@@ -12,8 +12,6 @@ interface IBaseService<T> {
 
   findById(id: EntityId): Promise<T>
 
-  update(id: EntityId, data: any): Promise<T>
-
   delete(id: EntityId): Promise<DeleteResult>
 }
 
@@ -39,20 +37,17 @@ export class BaseService<T extends BaseEntity, R extends Repository<T>> implemen
     return list;
   }
 
-  async findById(id: string): Promise<T> {
-    const temp = await this.repository.findOne({ where: { id: id as any } })
+  async findById(id: string, relation = []): Promise<T> {
+    const temp = await this.repository.findOne({
+      where: {
+        id: id as any,
+      },
+      relations: relation
+    })
     if (!temp) {
       throw new NotFoundException(`Items with ID ${id} not found`);
     }
     return temp
-  }
-
-  async update(id: EntityId, data: any): Promise<T> {
-    const updateResult = await this.repository.update(id, data)
-    if (updateResult.affected === 0) {
-      throw new BadRequestException(`Failed to update device with ID ${id}.`);
-    }
-    return this.findById(id as any)
   }
 
   async delete(id: EntityId): Promise<DeleteResult> {

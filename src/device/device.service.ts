@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Between, LessThan, MoreThan, Repository } from "typeorm";
 import axios from "axios"; // Add this import for making HTTP requests
@@ -9,9 +9,10 @@ import { validStatus } from "src/common/helper";
 import { Schedule } from "src/schedule/schedule.entity";
 import { CreateDeviceDto } from './dtos/device.create.dto'; // Import the DTO
 import { UpdateDeviceDto } from './dtos/device.update.dto'; // Import the DTO
+import { BaseService } from "src/common/service/base_service";
 
 @Injectable()
-export class DeviceService {
+export class DeviceService extends BaseService<Device, Repository<Device>> {
     private readonly validDeviceTypes = ['light', 'soil', 'air', 'pump']; // Updated valid types
 
     constructor(
@@ -21,18 +22,11 @@ export class DeviceService {
         private readonly userRepository: Repository<User>,
         @InjectRepository(Schedule)
         private readonly scheduleRepository: Repository<Schedule>,
-    ) { }
-
-    async getDeviceById(id: string): Promise<Device> {
-        const device = await this.deviceRepository.findOne({
-            where: { id: id },
-            relations: ['user'], // Ensure the user relationship is loaded
-        });
-        if (!device) {
-            throw new NotFoundException(`Device with ID ${id} not found`);
-        }
-        return device;
+        protected readonly logger: Logger
+    ) {
+        super(deviceRepository, logger)
     }
+
 
     async getDevicesByConditions(startDate: string, endDate: string, whereCondition: any): Promise<Device[]> {
         let parsedStartDate: Date | undefined;
@@ -144,8 +138,8 @@ export class DeviceService {
         if (!resultFind)
             throw new ConflictException(`The device with id ${id} isn't exist`)
 
-        const schedules = await this.scheduleRepository.find({where:{ device: {id: id}}})
-        await Promise.all(schedules.map(schedule => 
+        const schedules = await this.scheduleRepository.find({ where: { device: { id: id } } })
+        await Promise.all(schedules.map(schedule =>
             this.scheduleRepository.delete({ id: schedule.id })
         ));
 
@@ -157,7 +151,7 @@ export class DeviceService {
         return "Delete device successfully";
     }
 
-    async triggerAction( qrCode: string, value: string): Promise<string> {
+    async triggerAction(qrCode: string, value: string): Promise<string> {
         const url = `https://io.adafruit.com/api/v2/hoahaoce/feeds/${qrCode}/data`;
         const headers = {
             "X-AIO-Key": process.env.ADAFRUIT_IO_KEY || 123456,

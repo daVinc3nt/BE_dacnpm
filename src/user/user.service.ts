@@ -6,13 +6,18 @@ import { CreateUserDto } from './dtos/user.create.dto';
 import { UpdateUserDto } from './dtos/user.update.dto';
 import * as jwt from 'jsonwebtoken';
 import { isUUID } from 'class-validator';
+import { BaseService } from 'src/common/service/base_service';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
-export class UserService {
+export class UserService extends BaseService<User, Repository<User>> {
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
-    ) {}
+        protected readonly logger: Logger
+    ) {
+        super(userRepository, logger)
+    }
 
     // ✅ Tạo user với kiểm tra email trùng lặp
     async createUser(dto: CreateUserDto): Promise<User> {
@@ -43,41 +48,16 @@ export class UserService {
         return user;
     }
 
-    // ✅ Lấy danh sách tất cả user
-    async findAllUser(): Promise<User[]> {
-        const users = await this.userRepository.find();
-
-        if (!users.length) {
-            throw new NotFoundException('Hiện tại không có user nào trong hệ thống.');
-        }
-
-        return users;
-    }
-
-    // ✅ Tìm user theo ID
-    async findUserById(id: string): Promise<User> {
-        const user = await this.userRepository.findOne({
-            where: { id },
-            relations: ['devices', 'schedules'], // Load luôn danh sách thiết bị & lịch trình
-        });
-
-        if (!user) {
-            throw new NotFoundException(`User với ID ${id} không tồn tại`);
-        }
-
-        return user;
-    }
-
     // ✅ Cập nhật thông tin user
     async updateUser(id: string, dto: UpdateUserDto): Promise<User> {
-        const existingUser = await this.findUserById(id);
+        const existingUser = await super.findById(id);
 
         if (!existingUser) {
             throw new NotFoundException(`User với ID ${id} không tồn tại`);
         }
 
         await this.userRepository.update(id, dto);
-        return this.findUserById(id);
+        return super.findById(id);
     }
 
     // ✅ Tìm hoặc tạo user từ thông tin Google
@@ -108,7 +88,7 @@ export class UserService {
         try {
             const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'defaultSecret'); // Decode the token
             const userId = decoded.id; // Extract user ID from the token payload
-            return this.findUserById(userId); // Fetch user information by ID
+            return super.findById(userId); // Fetch user information by ID
         } catch (error) {
             console.error('Error decoding token:', error.message); // Log the error
             throw new Error('Invalid token');

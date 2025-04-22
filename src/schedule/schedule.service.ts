@@ -80,14 +80,6 @@ export class ScheduleService extends BaseService<Schedule, Repository<Schedule>>
         }
     }
 
-    async getAllSchedule(): Promise<Schedule[]> {
-        return await super.findAll();
-    }
-
-    async getScheduleById(id: string): Promise<Schedule> {
-        return await super.findById(id);
-    }
-
     async getScheduleByConditions(startDate: string, endDate: string, whereCondition: any): Promise<Schedule[]> {
 
         let parsedStartDate: Date | undefined;
