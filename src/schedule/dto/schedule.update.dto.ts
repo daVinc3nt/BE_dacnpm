@@ -2,11 +2,11 @@ import { IsOptional, IsString, IsUUID, IsNumber, IsIn } from 'class-validator';
 
 export class UpdateScheduleDto {
   @IsOptional()
-  @IsUUID()
+  @IsString()
   userId?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   deviceId?: string;
 
   @IsOptional()

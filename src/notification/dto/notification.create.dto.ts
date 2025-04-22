@@ -1,11 +1,11 @@
 import { IsUUID, IsPositive, IsNotEmpty, IsString, IsOptional, MaxLength, IsBoolean } from 'class-validator';
 
 export class CreateNotificationConfigDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   userId: string;
 
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   deviceId: string;
 

@@ -2,11 +2,11 @@ import { IsNotEmpty, IsString, IsOptional, IsUUID, IsNumber } from 'class-valida
 
 export class CreateScheduleDto {
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   userId: string;
 
   @IsNotEmpty()
-  @IsUUID()
+  @IsString()
   deviceId: string;
 
   @IsNotEmpty()

@@ -18,7 +18,7 @@ export class ScheduleController {
   ) { }
 
   // Periodically check schedules every 59 seconds
-  @Interval(5000)
+  @Interval(60000)
   async handleScheduleCheck() {
     console.log("Đang kiểm tra lịch trình...");
     await this.scheduleService.handleScheduleCheck();
@@ -90,6 +90,7 @@ export class ScheduleController {
   async deleteSchedule(
     @Query('id') id: string
   ) {
-    this.scheduleService.deleteSchedule(id);
+    return await this.scheduleService.deleteSchedule(id);
   }
+
 }

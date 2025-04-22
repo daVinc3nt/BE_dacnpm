@@ -7,7 +7,7 @@ export class Schedule {
     @PrimaryGeneratedColumn("uuid")
     id: string
 
-    @Column()
+    @Column({nullable: true})
     action: string
 
     @Column({ nullable: true })

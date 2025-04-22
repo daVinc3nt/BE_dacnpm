@@ -23,7 +23,7 @@ export class ScheduleService {
     ) { }
 
     async handleScheduleCheck() {
-        const now = new Date("2025-03-11T23:00Z");
+        const now = new Date();
         // daily
         const nowHour = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
         const onDaily = await this.scheduleRepository.find({ where: { repeat: "daily", time: nowHour }, relations: ['device'] })
@@ -67,13 +67,13 @@ export class ScheduleService {
         }
         const lastArr = [...onDaily, ...onWeekly, ...onMonthly, ...onXDays];
         if (lastArr) {
-    for (const element of lastArr) { // Thay forEach() bằng for...of
-        console.log(`Chạy thiết bị với id=${element.device.id}`);
-        await this.deviceService.triggerAction(element.device.id, element.action); // Chờ hoàn thành
-        element.lastActive = new Date();
-    }
-    await this.scheduleRepository.save(lastArr); // Sau khi tất cả đã hoàn thành
-}
+            for (const element of lastArr) { // Thay forEach() bằng for...of
+                console.log(`Chạy thiết bị với id=${element.device.id}`);
+                await this.deviceService.triggerAction(element.device.id, element.action); // Chờ hoàn thành
+                element.lastActive = new Date();
+            }
+            await this.scheduleRepository.save(lastArr); // Sau khi tất cả đã hoàn thành
+        }
     }
 
     async getAllSchedule(): Promise<Schedule[]> {
