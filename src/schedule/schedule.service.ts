@@ -9,9 +9,10 @@ import { isValidUUID, isValidDateFormat, validRepeat, validAction, isValidTimeOf
 import { DeviceService } from "src/device/device.service";
 import { CreateScheduleDto } from "./dto/schedule.create.dto";
 import { UpdateScheduleDto } from "./dto/schedule.update.dto";
-
+import { BaseService } from "src/common/service/base_service";
+import { Logger } from '@nestjs/common';
 @Injectable()
-export class ScheduleService {
+export class ScheduleService extends BaseService<Schedule, Repository<Schedule>> {
     constructor(
         @InjectRepository(Schedule)
         private readonly scheduleRepository: Repository<Schedule>,
@@ -20,7 +21,10 @@ export class ScheduleService {
         @InjectRepository(Device)
         private readonly deviceRepository: Repository<Device>,
         private readonly deviceService: DeviceService,
-    ) { }
+        protected readonly logger: Logger
+    ) {
+        super(scheduleRepository, logger)
+    }
 
     async handleScheduleCheck() {
         const now = new Date();
@@ -133,20 +137,87 @@ export class ScheduleService {
     async addSchedule(createScheduleDto: CreateScheduleDto): Promise<Schedule> {
         const { userId, deviceId, ...data } = createScheduleDto;
 
-        const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } });
-        if (!deviceEnt) {
-            throw new BadRequestException(`Not found device with id ${deviceId}`);
+        let errors: string[] = [];
+
+        const userEnt = await this.userRepository.findOne({ where: { id: userId } })
+        if (!userEnt)
+            errors.push(`Not found user with id ${userId}`)
+
+        const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } })
+        if (!deviceEnt)
+            errors.push(`Not found device with id ${deviceId}`)
+
+        if (!data.action || !validAction.includes(data.action)) {
+            errors.push(`Invalid status. Allowed values: ${validAction.join(', ')}`);
         }
 
-        const nowUTC = new Date();
-        const schedule = this.scheduleRepository.create({
-            ...data,
-            createDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
-            updateDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
-            device: { id: deviceId },
-        });
+        if (!data.conditon) {
+            errors.push('Condition is required.');
+        }
 
-        return this.scheduleRepository.save(schedule);
+        const nowVN = super.getNowVnDate();
+
+        if (!data.time)
+            errors.push('Time is required.');
+        else if (data.repeat) {
+            if (!validRepeat.includes(data.repeat))
+                errors.push(`Invalid repeat. Allowed values: ${validRepeat.join(', ')}`)
+            else
+                switch (data.repeat) {
+                    case "daily":
+                        if (!isValidTimeOfDaily(data.time))
+                            errors.push(`Invalid time. Allowed values: hh:mm`)
+                        break;
+                    case "weekly":
+                        if (!isValidTimeOfWeekly(data.time))
+                            errors.push(`Invalid time. Allowed values: (day in week) hh:mm`)
+                        break;
+                    case "monthly":
+                        if (!isValidTimeOfMonthly(data.time))
+                            errors.push(`Invalid time. Allowed values: (number) hh:mm`)
+                        break;
+                    case "x days":
+                        if (!isValidXDaysFormat(data.time))
+                            errors.push(`Invalid time. Allowed values: (number) hh:mm with number in range(1-99) is days to repeat`)
+                        else {
+                            data.lastActive = nowVN
+                        }
+                        break;
+                }
+        }
+
+        if (errors.length > 0) {
+            throw new BadRequestException(errors);
+        }
+
+        let createDate = nowVN;
+        let updateDate = nowVN;
+
+        const newDevice = this.scheduleRepository.create({
+            ...data,
+            device: { id: deviceId },
+            user: { id: userId },
+            createDate,
+            updateDate,
+        });
+        const savedDevice = await this.scheduleRepository.save(newDevice);
+
+        return savedDevice;
+
+        // const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } });
+        // if (!deviceEnt) {
+        //     throw new BadRequestException(`Not found device with id ${deviceId}`);
+        // }
+
+        // const nowUTC = new Date();
+        // const schedule = this.scheduleRepository.create({
+        //     ...data,
+        //     createDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
+        //     updateDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
+        //     device: { id: deviceId },
+        // });
+
+        // return this.scheduleRepository.save(schedule);
     }
 
     async updateSchedule(id: string, updateScheduleDto: UpdateScheduleDto): Promise<Schedule> {

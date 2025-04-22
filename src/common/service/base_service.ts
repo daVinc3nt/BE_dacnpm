@@ -1,7 +1,12 @@
 import { EntityId } from 'typeorm/repository/EntityId'
-import { DeleteResult, Repository } from 'typeorm'
+import { DeleteResult, PrimaryGeneratedColumn, Repository } from 'typeorm'
 import { BadRequestException, Logger, NotFoundException } from '@nestjs/common'
-import { BaseEntity } from '../base_entity'
+
+export class BaseEntity {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+}
+
 interface IBaseService<T> {
   findAll(): Promise<T[]>
 

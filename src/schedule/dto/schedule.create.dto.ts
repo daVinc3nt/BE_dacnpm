@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsOptional, IsUUID, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsOptional, IsUUID, IsNumber, IsDate } from 'class-validator';
 
 export class CreateScheduleDto {
   @IsNotEmpty()
@@ -28,4 +28,8 @@ export class CreateScheduleDto {
   @IsNotEmpty()
   @IsString()
   time: string;
+
+  @IsOptional()
+  @IsDate()
+  lastActive: Date 
 }

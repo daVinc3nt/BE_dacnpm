@@ -17,7 +17,7 @@ export class ScheduleController {
     private readonly scheduleService: ScheduleService,
   ) { }
 
-  // Periodically check schedules every 59 seconds
+  // Periodically check schedules every 60 seconds
   @Interval(60000)
   async handleScheduleCheck() {
     console.log("Đang kiểm tra lịch trình...");

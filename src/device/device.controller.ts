@@ -18,7 +18,7 @@ export class DeviceController {
     private readonly deviceService: DeviceService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>
-  ) {}
+  ) { }
 
   // -------------------- GET DEVICES --------------------
   @ApiOperation({ summary: 'Get devices with optional filters or all devices if no filters are provided' })
@@ -42,7 +42,7 @@ export class DeviceController {
 
     const token = authorization.replace('Bearer ', '');
     const decoded: any = this.decodeToken(token); // Decode the token to get user info
-    console.log("hello",decoded) 
+    console.log("hello", decoded)
     const currentUserId = decoded.id;
 
     if (!currentUserId) {
