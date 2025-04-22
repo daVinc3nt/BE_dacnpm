@@ -105,6 +105,34 @@ export class DeviceService {
             throw new NotFoundException(`Device with ID ${id} not found`);
         }
 
+        if (existingDevice.status === 'Manual Only') {
+            throw new BadRequestException('Cannot update a device with status "Manual Only".');
+        }
+        else {
+            const url = `https://io.adafruit.com/api/v2/hoahaoce/feeds/${data.qrCode}-state/data`;
+            const headers = {
+                "X-AIO-Key": process.env.ADAFRUIT_IO_KEY || "123456",
+                "Content-Type": "application/json",
+            };
+            console.log(url)
+            let body;
+            if (data.status) {
+                if (data.status === 'Manual') {
+                    body = 1
+                    data.status = 'Manual'; // Convert to numeric representation
+                } else if (data.status === 'Auto') {
+                    body = 0
+                    data.status = 'Auto'; // Convert to numeric representation
+                } else {
+                    throw new BadRequestException('Invalid status value. Allowed values: manual, auto.');
+                }
+            }
+            const response = await axios.post(url, body, { headers });
+            if (response.status !== 200 && response.status !== 201) {
+                throw new Error(`Unexpected response status: ${response.status}`);
+            } 
+        }
+
         if (data.deviceName) {
             const duplicateDevice = await this.deviceRepository.findOne({
                 where: { deviceName: data.deviceName },
@@ -114,10 +142,8 @@ export class DeviceService {
             }
         }
 
-        if (data.status && !validStatus.includes(data.status)) {
-            throw new BadRequestException(`Invalid status. Allowed values: ${validStatus.join(', ')}`);
-        }
-
+        
+        
         if (data.type && !this.validDeviceTypes.includes(data.type)) {
             throw new BadRequestException(`Invalid device type. Allowed values: ${this.validDeviceTypes.join(', ')}`);
         }
