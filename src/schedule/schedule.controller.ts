@@ -20,8 +20,15 @@ export class ScheduleController {
   // Periodically check schedules every 60 seconds
   @Interval(60000)
   async handleScheduleCheck() {
-    console.log("Đang kiểm tra lịch trình...");
-    await this.scheduleService.handleScheduleCheck();
+    const nowHour = new Date().toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "Asia/Ho_Chi_Minh"
+    });
+
+    console.log(`${nowHour} Đang kiểm tra lịch trình...`);
+    await this.scheduleService.handleScheduleCheck()
   }
 
   // Get schedules based on query parameters or fetch all schedules
