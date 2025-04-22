@@ -37,4 +37,4 @@ export function isValidXDaysFormat(input: string): boolean {
 
 export const validAction = ['On', 'Off'];
 
-export const validStatus = ['active', 'inactive', 'maintenance'];
+export const validStatus = ['Manual', 'Auto', 'Manual Only'];
