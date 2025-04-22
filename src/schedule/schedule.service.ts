@@ -81,18 +81,11 @@ export class ScheduleService extends BaseService<Schedule, Repository<Schedule>>
     }
 
     async getAllSchedule(): Promise<Schedule[]> {
-        const list_schedule = await this.scheduleRepository.find();
-        if (!list_schedule.length)
-            return [];
-        return list_schedule;
+        return await super.findAll();
     }
 
     async getScheduleById(id: string): Promise<Schedule> {
-        const schedule = await this.scheduleRepository.findOne({ where: { id } });
-        if (!schedule) {
-            throw new NotFoundException(`Schedule with ID ${id} not found`);
-        }
-        return schedule;
+        return await super.findById(id);
     }
 
     async getScheduleByConditions(startDate: string, endDate: string, whereCondition: any): Promise<Schedule[]> {
@@ -203,21 +196,6 @@ export class ScheduleService extends BaseService<Schedule, Repository<Schedule>>
         const savedDevice = await this.scheduleRepository.save(newDevice);
 
         return savedDevice;
-
-        // const deviceEnt = await this.deviceRepository.findOne({ where: { id: deviceId } });
-        // if (!deviceEnt) {
-        //     throw new BadRequestException(`Not found device with id ${deviceId}`);
-        // }
-
-        // const nowUTC = new Date();
-        // const schedule = this.scheduleRepository.create({
-        //     ...data,
-        //     createDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
-        //     updateDate: new Date(nowUTC.getTime() + 7 * 60 * 60 * 1000),
-        //     device: { id: deviceId },
-        // });
-
-        // return this.scheduleRepository.save(schedule);
     }
 
     async updateSchedule(id: string, updateScheduleDto: UpdateScheduleDto): Promise<Schedule> {
@@ -225,10 +203,7 @@ export class ScheduleService extends BaseService<Schedule, Repository<Schedule>>
             throw new BadRequestException("Id not in UUID format");
         }
 
-        const schedule = await this.scheduleRepository.findOne({ where: { id } });
-        if (!schedule) {
-            throw new NotFoundException(`Schedule with ID ${id} not found`);
-        }
+        const schedule = await super.findById(id);
 
         Object.assign(schedule, updateScheduleDto);
         schedule.updateDate = new Date();
@@ -241,14 +216,8 @@ export class ScheduleService extends BaseService<Schedule, Repository<Schedule>>
             throw new BadRequestException("Id not in UUID format");
         }
 
-        const schedule = await this.scheduleRepository.findOne({ where: { id } });
-        if (!schedule) {
-            throw new NotFoundException(`Schedule with ID ${id} not found`);
-        }
+        await super.findById(id);
 
-        const result = await this.scheduleRepository.delete(id);
-        if (result.affected === 0) {
-            throw new BadRequestException(`Failed to delete schedule with ID ${id}.`);
-        }
+        await super.delete(id);
     }
 }
