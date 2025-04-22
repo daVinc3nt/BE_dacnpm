@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { NotificationConfig } from './notification.entity';
@@ -8,16 +8,20 @@ import { Cron } from '@nestjs/schedule';
 import { MailerService } from '@nestjs-modules/mailer';
 import { DeviceService } from '../device/device.service'; // Import DeviceService
 import { PlantService } from '../plant/plant.servive'; // Import PlantService
+import { BaseService } from 'src/common/service/base_service';
 
 @Injectable()
-export class NotificationService {
+export class NotificationService extends BaseService<NotificationConfig, Repository<NotificationConfig>> {
   constructor(
     @InjectRepository(NotificationConfig)
     private readonly configRepository: Repository<NotificationConfig>,
     private readonly mailerService: MailerService,
     private readonly deviceService: DeviceService, // Inject DeviceService
     private readonly plantService: PlantService, // Inject PlantService
-  ) {}
+    protected readonly logger : Logger
+  ) {
+    super(configRepository, logger)
+  }
 
   async createOrUpdate(createDto: CreateNotificationConfigDto) {
     const { userId, deviceId, frequencyMinutes, title, description, active } = createDto;

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { MailerModule } from '@nestjs-modules/mailer';
@@ -40,7 +40,7 @@ import { join } from 'path';
     UserModule,
     DeviceModule, // Add DeviceModule to imports
   ],
-  controllers: [NotificationController],
+  controllers: [NotificationController, Logger],
   providers: [NotificationService, PlantService], // Ensure PlantService is included
 })
 export class NotificationModule {}
