@@ -11,6 +11,7 @@ import { CreateScheduleDto } from "./dto/schedule.create.dto";
 import { UpdateScheduleDto } from "./dto/schedule.update.dto";
 import { BaseService } from "src/common/service/base_service";
 import { Logger } from '@nestjs/common';
+import { interval } from "rxjs";
 @Injectable()
 export class ScheduleService extends BaseService<Schedule, Repository<Schedule>> {
     constructor(
@@ -25,6 +26,7 @@ export class ScheduleService extends BaseService<Schedule, Repository<Schedule>>
     ) {
         super(scheduleRepository, logger)
     }
+    private delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     async handleScheduleCheck() {
         const now = new Date();
@@ -70,14 +72,44 @@ export class ScheduleService extends BaseService<Schedule, Repository<Schedule>>
             }
         }
         const lastArr = [...onDaily, ...onWeekly, ...onMonthly, ...onXDays];
-        if (lastArr) {
-            for (const element of lastArr) { // Thay forEach() bằng for...of
-                console.log(`Chạy thiết bị với id=${element.device.id}`);
-                await this.deviceService.triggerAction(element.device.id, element.action); // Chờ hoàn thành
-                element.lastActive = new Date();
+
+        const triggerTasks = lastArr.map((element) => {
+            return (async () => {
+                try {
+                    console.log(`${element.action === "On" ? "Bật" : "Tắt"} thiết bị ${element.device.id}`);
+                    await this.deviceService.triggerAction(
+                        element.device.qrCode,
+                        element.action === "On" ? "100" : "0"
+                    );
+
+                    await this.delay(element.actionTime * 1000);
+
+                    console.log(`${element.action === "On" ? "Tắt" : "Bật"} thiết bị ${element.device.id}`);
+                    await this.deviceService.triggerAction(
+                        element.device.qrCode,
+                        element.action === "On" ? "0" : "100"
+                    );
+
+                    element.lastActive = new Date();
+                    return element;
+                } catch (error) {
+                    console.error(`Lỗi thiết bị ${element.device.id}:`, error);
+                    return null;
+                }
+            })();
+        });
+
+        Promise.allSettled(triggerTasks).then((results) => {
+            const success = results
+                .filter(r => r.status === "fulfilled" && r.value)
+                .map(r => (r as PromiseFulfilledResult<any>).value);
+
+            if (success.length > 0) {
+                this.scheduleRepository.save(success)
+                    .then(() => console.log("Lưu trạng thái thiết bị thành công"))
+                    .catch(err => console.error("Lỗi khi lưu trạng thái:", err));
             }
-            await this.scheduleRepository.save(lastArr); // Sau khi tất cả đã hoàn thành
-        }
+        });
     }
 
     async getScheduleByConditions(startDate: string, endDate: string, whereCondition: any): Promise<Schedule[]> {

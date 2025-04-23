@@ -106,39 +106,39 @@ export class DeviceService extends BaseService<Device, Repository<Device>> {
         if (existingDevice.type === 'view' && (data.status === 'Manual' || data.status === 'Manual Only')) {
             throw new BadRequestException('Cannot update a device of type "view" to status "Manual" or "Manual Only".');
         }
-
-        const url = `https://io.adafruit.com/api/v2/hoahaoce/feeds/${data.qrCode}-state/data`;
-
-        if (!data.qrCode) {
-            throw new BadRequestException('QR code is required.');
-        }
-        
-        const headers = {
-            "X-AIO-Key": process.env.ADAFRUIT_IO_KEY || "123456",
-            "Content-Type": "application/json",
-        };
-        
-        let value;
-        if (data.status) {
-            if (data.status === 'Manual') {
-                value = "1";
-            } else if (data.status === 'Auto') {
-                value = "0";
-            } else {
-                throw new BadRequestException('Invalid status value. Allowed values: Manual, Auto.');
+        if (data.type === 'pump') {
+            const url = `https://io.adafruit.com/api/v2/hoahaoce/feeds/${data.qrCode}-state/data`;
+            if (!data.qrCode) {
+                throw new BadRequestException('QR code is required.');
+            }
+            const headers = {
+                "X-AIO-Key": process.env.ADAFRUIT_IO_KEY || "123456",
+                "Content-Type": "application/json",
+            };
+    
+            let value;
+            if (data.status) {
+                if (data.status === 'Manual') {
+                    value = "1";
+                } else if (data.status === 'Auto') {
+                    value = "0";
+                } else {
+                    throw new BadRequestException('Invalid status value. Allowed values: Manual, Auto.');
+                }
+            }
+    
+            const body = { value };
+    
+            console.log("Sending to:", url);
+            console.log("Body:", body);
+    
+            const response = await axios.post(url, body, { headers });
+    
+            if (response.status !== 200 && response.status !== 201) {
+                throw new Error(`Unexpected response status: ${response.status}`);
             }
         }
-        
-        const body = { value };
-        
-        console.log("Sending to:", url);
-        console.log("Body:", body);
-        
-        const response = await axios.post(url, body, { headers });
-        
-        if (response.status !== 200 && response.status !== 201) {
-            throw new Error(`Unexpected response status: ${response.status}`);
-        }
+
 
         if (data.deviceName) {
             const duplicateDevice = await this.deviceRepository.findOne({
@@ -149,8 +149,8 @@ export class DeviceService extends BaseService<Device, Repository<Device>> {
             }
         }
 
-        
-        
+
+
         if (data.type && !this.validDeviceTypes.includes(data.type)) {
             throw new BadRequestException(`Invalid device type. Allowed values: ${this.validDeviceTypes.join(', ')}`);
         }
