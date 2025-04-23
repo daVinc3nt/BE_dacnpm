@@ -40,7 +40,7 @@ import { join } from 'path';
     UserModule,
     DeviceModule, // Add DeviceModule to imports
   ],
-  controllers: [NotificationController, Logger],
-  providers: [NotificationService, PlantService], // Ensure PlantService is included
+  controllers: [NotificationController],
+  providers: [NotificationService, PlantService, Logger], // Ensure PlantService is included
 })
 export class NotificationModule {}
