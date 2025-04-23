@@ -237,7 +237,7 @@ export class DeviceService extends BaseService<Device, Repository<Device>> {
     async getFirstDataPointsForUser(userId: string): Promise<{ label: string; value: any }[]> {
         // Fetch all devices for the user with action 'trigger'
         const devices = await this.deviceRepository.find({
-            where: { user: { id: userId }, action: 'trigger' },
+            where: { user: { id: userId }, action: 'view' },
             relations: ['user'],
         });
 
