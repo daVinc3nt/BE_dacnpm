@@ -15,8 +15,8 @@ export class PlantService {
     if (soilMoisture > soilMoistureThresholdHigh) {
       return 'Soil moisture is too high. Avoid watering and improve soil drainage.';
     }
-
-    return 'Soil moisture is within the ideal range. No action is needed.';
+    return '1'
+    // return 'Soil moisture is within the ideal range. No action is needed.';
   }
 
   checkAirHumidity(airHumidity: number): string {
@@ -30,7 +30,7 @@ export class PlantService {
     if (airHumidity > airHumidityThresholdHigh) {
       return 'Air humidity is too high. Monitor for potential mold growth.';
     }
-
-    return 'Air humidity is within the ideal range. No action is needed.';
+    return '1'
+    // return 'Air humidity is within the ideal range. No action is needed.';
   }
 }

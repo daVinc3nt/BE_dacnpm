@@ -151,8 +151,12 @@ export class NotificationService extends BaseService<NotificationConfig, Reposit
     let statusMessage = '';
     if (config.device.type === 'soil') {
       statusMessage = this.plantService.checkSoilMoisture(deviceData[0].value);
+      if (statusMessage === '1')
+        return;
     } else if (config.device.type === 'air') {
       statusMessage = this.plantService.checkAirHumidity(deviceData[0].value);
+      if (statusMessage === '1')
+        return;
     }
 
     // Send email notification
