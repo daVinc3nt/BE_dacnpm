@@ -82,13 +82,15 @@ export class ScheduleService extends BaseService<Schedule, Repository<Schedule>>
                         element.action === "On" ? "100" : "0"
                     );
 
-                    await this.delay(element.actionTime * 1000);
 
-                    console.log(`${element.action === "On" ? "Tắt" : "Bật"} thiết bị ${element.device.id}`);
-                    await this.deviceService.triggerAction(
-                        element.device.qrCode,
-                        element.action === "On" ? "0" : "100"
-                    );
+                    if (element.actionTime && element.actionTime !== 0) {
+                        await this.delay(element.actionTime * 1000);
+                        console.log(`${element.action === "On" ? "Tắt" : "Bật"} thiết bị ${element.device.id}`);
+                        await this.deviceService.triggerAction(
+                            element.device.qrCode,
+                            element.action === "On" ? "0" : "100"
+                        );
+                    }
 
                     element.lastActive = new Date();
                     return element;
